@@ -195,19 +195,10 @@ FakesAssemblies/
 # Visual Studio 6 workspace options file
 *.opt
 
-#cmake
+# CMake
 CMakeFiles/
 CMake/
 CMakeUserPresets.json
 
-#Custom
-
-curl-7.41.0/
-ipch/
-package/
-/vSMR/version.txt
-/vSMR/SectorFileProviderDescriptor.txt
-/vSMR/ipaddr.txt
-/vSMR/euroscope_sector_providers.txt
-vSMR/vSMR.vcxproj
-/lib/include/boost_1_85_0/
+# Visual Studio Code
+.vscode
