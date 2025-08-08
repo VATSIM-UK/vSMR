@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "SMRPlugin.hpp"
 
-bool Logger::ENABLED;
+bool Logger::ENABLED{true};
 string Logger::DLL_PATH;
 
 bool HoppieConnected = false;

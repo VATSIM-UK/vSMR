@@ -2,27 +2,18 @@ cmake_minimum_required(VERSION 3.15)
 
 project(vSMR LANGUAGES CXX)
 
-# Enforce WIN32, Release mode, and x86 architecture
-if(NOT WIN32)
-    message(FATAL_ERROR "This project can only be built on WIN32.")
-endif()
-
-if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-    message(FATAL_ERROR "This project can only be built in Release mode.")
-endif()
-
-# Force 32-bit architecture for EuroScope compatibility
 set(CMAKE_GENERATOR_PLATFORM "Win32")
 set(CMAKE_VS_PLATFORM_NAME "Win32")
 
 
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}")
 
-find_package(asio REQUIRED)
-find_package(CURL REQUIRED)
-find_package(rapidJSON REQUIRED)
+find_package(asio CONFIG REQUIRED)
+find_package(CURL CONFIG REQUIRED)
+#find_package(ZLIB CONFIG REQUIRED)
+find_package(RapidJSON CONFIG REQUIRED)
 
-set(CMAKE_MFC_FLAG 2) # Use shared MFC
+set(CMAKE_MFC_FLAG 1) # Use static MFC
 
 # Source files
 set(SOURCES
@@ -58,6 +49,7 @@ target_link_libraries(vSMR PRIVATE
     ${LIBS}
     asio::asio
     CURL::libcurl
+    #ZLIB::ZLIB
     rapidjson
 )
 
@@ -67,18 +59,14 @@ target_compile_definitions(vSMR PRIVATE
     _WINDOWS
     NDEBUG
     _USRDLL
-    ASIO_STANDALONE
-    _AFXDLL
-    CURL_STATICLIB
+    #ASIO_STANDALONE
 )
 
-target_compile_options(vSMR PRIVATE /W3 /O2)
+target_compile_options(vSMR PRIVATE /W3 /O2 /MT)
 
-# Linker options to handle duplicate symbols
-target_link_options(vSMR PRIVATE
-    /FORCE:MULTIPLE
-    /IGNORE:4006
-    /IGNORE:4088
+set_target_properties(vSMR PROPERTIES
+    MSVC_RUNTIME_LIBRARY "MultiThreaded"
+    LINK_FLAGS "/NODEFAULTLIB:msvcrt.lib"
 )
 
 # Set output directories

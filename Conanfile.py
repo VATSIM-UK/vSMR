@@ -4,14 +4,19 @@ from conan.tools.cmake import CMake
 class VSMRConan(ConanFile):
     name = "vSMR"
     settings = "os", "compiler", "build_type", "arch"
-    options = {"shared": [True, False]}
-    default_options = {"shared": True}
+    
     generators = "CMakeToolchain", "CMakeDeps"
 
     def requirements(self):
         self.requires("asio/1.24.0")
         self.requires("libcurl/8.15.0")
-        self.requires("rapidjson/cci.20220822")
+        self.requires("rapidjson/1.1.0")
+        self.requires("zlib/1.3.1")
+
+    def configure(self):
+        self.options["zlib"].shared = True          # force static (or True for DLL, but pick one)
+        self.options["libcurl"].with_zlib = True
+        self.options["libcurl"].shared = True       # match zlib
 
     def build_requirements(self):
         self.build_requires("cmake/3.25.0")
@@ -22,11 +27,7 @@ class VSMRConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
-        libcurl_include_paths = self.dependencies["libcurl"].cpp_info.includedirs
-        cmake.configure(variables={
-            "CMAKE_BUILD_TYPE": "Release",
-            "CMAKE_INCLUDE_PATH": libcurl_include_paths
-        })
+        cmake.configure()
         cmake.build()
 
     def package(self):
