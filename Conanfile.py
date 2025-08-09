@@ -35,7 +35,6 @@ class VsmrRecipe(ConanFile):
         deps.generate()
 
         tc = CMakeToolchain(self)
-        tc.cache_variables["CMAKE_MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>"
         tc.cache_variables["CMAKE_MFC_FLAG"] = "2"
         if str(self.settings.get_safe("arch")) == "x86":
             tc.variables["CMAKE_GENERATOR_PLATFORM"] = "Win32"
