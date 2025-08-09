@@ -19,8 +19,10 @@ jobs:
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
 
       - name: Setup conan
-        run: pip install conan
-        
+        run: | 
+          pip install conan
+          conan profile default
+
       - name: Update Plugin Version
         if: github.ref_type == 'tag'
         run: |
