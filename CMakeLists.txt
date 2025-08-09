@@ -121,9 +121,8 @@ if(MSVC)
   )
 endif()
 
-# Set subsystem to Windows (DLL) and enable minimum warnings
 if(MSVC)
   target_compile_options(vSMR PRIVATE /W3)
-  # Ensure _AFXDLL is not defined (we use static MFC)
+  # Ensure _AFXDLL is not defined
   target_compile_options(vSMR PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/U_AFXDLL>)
 endif()

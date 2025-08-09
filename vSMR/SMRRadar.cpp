@@ -1192,9 +1192,9 @@ void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 
 		CAircraftTypeLookup::AircraftData data = AircraftTypes->getAircraftData(shortACType);
 		if (data.length != -1) {  // primarily use recorded data values
-			width = data.wingspan / 3.281;
-			cabin_width = (data.gearWidth / 2) / 3.281;
-			lenght = data.length / 3.281;
+			width = data.wingspan / 3.281f;
+			cabin_width = (data.gearWidth / 2) / 3.281f;
+			lenght = data.length / 3.281f;
 		}
 		else {  // use wtc instead
 			char wtc = fp.GetFlightPlanData().GetAircraftWtc();
