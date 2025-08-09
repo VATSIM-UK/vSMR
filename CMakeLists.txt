@@ -1,77 +1,129 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.25)
+project(vSMR LANGUAGES CXX RC)
 
-project(vSMR LANGUAGES CXX)
+# Ensure MSVC static runtime for a single shipping DLL (no VCRUNTIME deps)
+if(MSVC)
+  # Use CMake 3.15+ feature
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  # Enable MFC; 2 = use MFC in a Static Library
+  set(CMAKE_MFC_FLAG 2)
+endif()
 
-set(CMAKE_GENERATOR_PLATFORM "Win32")
-set(CMAKE_VS_PLATFORM_NAME "Win32")
+# Conan integrations
+include(${CMAKE_BINARY_DIR}/conan_deps.cmake OPTIONAL)
 
+# Output dirs
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}")
-
-find_package(asio CONFIG REQUIRED)
-find_package(CURL CONFIG REQUIRED)
-#find_package(ZLIB CONFIG REQUIRED)
-find_package(RapidJSON CONFIG REQUIRED)
-
-set(CMAKE_MFC_FLAG 1) # Use static MFC
-
-# Source files
-set(SOURCES
-    ${CMAKE_SOURCE_DIR}/vSMR/SMRPlugin.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/SMRRadar.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/Config.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/CallsignLookup.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/AircraftTypeLookup.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/InsetWindow.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/DataLinkDialog.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/CPDLCSettingsDialog.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/HttpHelper.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/Rimcas.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/vSMR.cpp
-    ${CMAKE_SOURCE_DIR}/vSMR/stdafx.cpp
+# Collect sources
+file(GLOB VSMR_SOURCES
+    "vSMR/*.cpp"
+)
+set(VSMR_HEADERS
+    vSMR/SMRPlugin.hpp
+    vSMR/SMRRadar.hpp
+    vSMR/InsetWindow.h
+    vSMR/CallsignLookup.hpp
+    vSMR/CPDLCSettingsDialog.hpp
+    vSMR/DataLinkDialog.hpp
+    vSMR/HttpHelper.hpp
+    vSMR/Config.hpp
+    vSMR/Rimcas.hpp
+    vSMR/ColorManager.h
+    vSMR/Logger.h
+    vSMR/Constant.hpp
+    vSMR/stdafx.h
+    vSMR/targetver.h
+    vSMR/vSMR.hpp
 )
 
-# Add shared library (DLL)
-add_library(vSMR SHARED ${SOURCES})
+set(VSMR_RESOURCES
+    vSMR/vSMR.rc
+)
 
-# Include directories
+add_library(vSMR SHARED ${VSMR_SOURCES} ${VSMR_HEADERS} ${VSMR_RESOURCES})
+set_target_properties(vSMR PROPERTIES OUTPUT_NAME "vSMR")
+
+# Precompiled headers
+# stdafx.h/cpp are existing PCH; configure MSVC PCH handling
+if(MSVC)
+  target_precompile_headers(vSMR PRIVATE vSMR/stdafx.h)
+endif()
+
+# Definitions needed by MFC
+if(MSVC)
+  target_compile_definitions(vSMR PRIVATE
+    VC_EXTRALEAN
+  _MBCS
+  _CRT_SECURE_NO_WARNINGS
+  ASIO_STANDALONE
+  CURL_STATICLIB
+  )
+endif()
+
+# Include EuroScope SDK headers bundled in repo
 target_include_directories(vSMR PRIVATE
-    ${CMAKE_SOURCE_DIR}/lib/include
-    ${CMAKE_SOURCE_DIR}/vSMR
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/vSMR
 )
 
-# Link libraries
-set(LIBS
-    ${CMAKE_SOURCE_DIR}/lib/EuroScopePlugInDll.lib
-    winmm.lib
-)
-target_link_libraries(vSMR PRIVATE 
-    ${LIBS}
-    asio::asio
-    CURL::libcurl
-    #ZLIB::ZLIB
-    rapidjson
+# Link EuroScope SDK import library (32-bit). Provided under lib/EuroScopePlugInDll.lib
+# Also link required Windows libs
+find_package(CURL REQUIRED)
+find_package(asio REQUIRED CONFIG)
+find_package(RapidJSON REQUIRED CONFIG)
+
+target_link_libraries(vSMR
+  PRIVATE
+  CURL::libcurl
+  rapidjson
+  asio::asio
 )
 
-# Additional compiler options
-target_compile_definitions(vSMR PRIVATE
-    WIN32
-    _WINDOWS
-    NDEBUG
-    _USRDLL
-    #ASIO_STANDALONE
-)
+# Windows and MFC libraries
+if(MSVC)
+  target_link_libraries(vSMR PRIVATE
+    version
+    winmm
+  Gdiplus
+    comdlg32
+    gdi32
+    user32
+    advapi32
+    shell32
+    ole32
+    oleaut32
+    uuid
+    Ws2_32
+    Crypt32
+  )
+  # Link the EuroScope import lib from repo
+  target_link_libraries(vSMR PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/EuroScopePlugInDll.lib
+  )
+  # Ensure /DELAYLOAD:version if needed; usually not required.
+endif()
 
-target_compile_options(vSMR PRIVATE /W3 /O2 /MT)
+# Ensure we compile as 32-bit when requested
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  message(WARNING "Building 64-bit; EuroScope is 32-bit. Configure with -A Win32 or Conan -s arch=x86.")
+endif()
 
-set_target_properties(vSMR PROPERTIES
-    MSVC_RUNTIME_LIBRARY "MultiThreaded"
-    LINK_FLAGS "/NODEFAULTLIB:msvcrt.lib"
-)
+# Resource include directories
+set_source_files_properties(${VSMR_RESOURCES} PROPERTIES LANGUAGE RC)
+if(MSVC)
+  # Add paths used by .rc for local resource includes
+  target_compile_options(vSMR PRIVATE
+    $<$<COMPILE_LANGUAGE:RC>:/I${CMAKE_CURRENT_SOURCE_DIR}/vSMR>
+    $<$<COMPILE_LANGUAGE:RC>:/I${CMAKE_CURRENT_SOURCE_DIR}>
+  )
+endif()
 
-# Set output directories
-set_target_properties(vSMR PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
-    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib
-)
+# Set subsystem to Windows (DLL) and enable minimum warnings
+if(MSVC)
+  target_compile_options(vSMR PRIVATE /W3)
+  # Ensure _AFXDLL is not defined (we use static MFC)
+  target_compile_options(vSMR PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/U_AFXDLL>)
+endif()

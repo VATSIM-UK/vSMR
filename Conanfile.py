@@ -1,29 +1,63 @@
 from conan import ConanFile
-from conan.tools.cmake import CMake
+from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps
+from conan.tools.files import copy
+import os
 
-class VSMRConan(ConanFile):
-    name = "vSMR"
+
+class VsmrRecipe(ConanFile):
+    name = "vsmr"
+    version = "0.0.0-dev"
+    license = "GPL-3.0-or-later"
+    author = "VATSIM-UK"
+    description = "vSMR EuroScope plugin"
+    url = "https://github.com/VATSIM-UK/vSMR"
     settings = "os", "compiler", "build_type", "arch"
-    
-    generators = "CMakeToolchain", "CMakeDeps"
+    exports = ("LICENSE",)
+    exports_sources = (
+        "CMakeLists.txt",
+        "vSMR/*",
+        "lib/*",
+        "*.cur",
+        "*.wav",
+        "README.md",
+    )
 
-    def requirements(self):
-        self.requires("asio/1.24.0")
-        self.requires("libcurl/8.15.0")
-        self.requires("rapidjson/1.1.0")
-        self.requires("zlib/1.3.1")
+    requires = (
+        "asio/1.28.2",
+        "libcurl/8.9.1",
+        "rapidjson/1.1.0",
+    )
 
-    def configure(self):
-        self.options["zlib"].shared = True          # force static (or True for DLL, but pick one)
-        self.options["libcurl"].with_zlib = True
-        self.options["libcurl"].shared = True       # match zlib
+    options = {
+        "with_tests": [True, False],
+    }
+    default_options = {
+        "with_tests": False,
+        # libcurl options to minimize external deps and ensure static linkage
+        "libcurl/*:shared": False,
+        "libcurl/*:with_ssl": "schannel",
+        "libcurl/*:with_zlib": False,
+        "libcurl/*:with_brotli": False,
+        "libcurl/*:with_ldap": False,
+        "libcurl/*:with_libidn": False,
+    }
 
-    def build_requirements(self):
-        self.build_requires("cmake/3.25.0")
+    def generate(self):
+        deps = CMakeDeps(self)
+        deps.generate()
 
-    def imports(self):
-        self.copy("*.dll", dst="bin", src="bin")
-        self.copy("*.dylib*", dst="bin", src="lib")
+        tc = CMakeToolchain(self)
+        # Prefer a single distributable DLL: link MSVC runtime statically
+        tc.cache_variables["CMAKE_MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+        # Use MFC in a Static Library
+        tc.cache_variables["CMAKE_MFC_FLAG"] = "2"
+        # Ensure 32-bit build when requested via -s arch=x86
+        # Generators like Ninja respect CMAKE_GENERATOR_PLATFORM; VS generator uses -A Win32
+        if str(self.settings.get_safe("arch")) == "x86":
+            tc.variables["CMAKE_GENERATOR_PLATFORM"] = "Win32"
+        # Default to Release if not specified
+        tc.variables["CMAKE_BUILD_TYPE"] = str(self.settings.get_safe("build_type") or "Release")
+        tc.generate()
 
     def build(self):
         cmake = CMake(self)
@@ -31,13 +65,13 @@ class VSMRConan(ConanFile):
         cmake.build()
 
     def package(self):
-        self.copy("*.h", dst="include", src="vSMR")
-        self.copy("*.hpp", dst="include", src="vSMR")
-        self.copy("*.lib", dst="lib", keep_path=False)
-        self.copy("*.dll", dst="bin", keep_path=False)
-        self.copy("*.so", dst="lib", keep_path=False)
-        self.copy("*.dylib", dst="lib", keep_path=False)
-        self.copy("*.a", dst="lib", keep_path=False)
+        # Stage the resulting DLL for convenience
+        for src in [self.build_folder, os.path.join(self.build_folder, "bin")]:
+            if os.path.isdir(src):
+                copy(self, pattern="*.dll", src=src, dst=os.path.join(self.package_folder, "bin"), keep_path=False)
+        copy(self, pattern="LICENSE", src=self.source_folder, dst=os.path.join(self.package_folder, "licenses"))
 
     def package_info(self):
-        self.cpp_info.libs = ["vSMR"]
+        self.cpp_info.bindirs = ["bin"]
+        self.cpp_info.libdirs = []
+        self.cpp_info.includedirs = []
