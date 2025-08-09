@@ -21,7 +21,7 @@ jobs:
       - name: Setup conan
         run: | 
           pip install conan
-          conan profile default
+          conan profile detect
 
       - name: Update Plugin Version
         if: github.ref_type == 'tag'
