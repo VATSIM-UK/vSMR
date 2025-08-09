@@ -2,9 +2,10 @@ name: Build DLL
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main,master]
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,21 +18,9 @@ jobs:
       - name: Setup MSBuild Path
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
 
-      - name: Bootstrap vcpkg
-        run: |
-            git clone https://github.com/microsoft/vcpkg.git
-            cd vcpkg
-            git checkout bdd229e13c66fa11acdc0bc8fed8e7474cd24aa5
-            .\bootstrap-vcpkg.bat
-
-      - name: Install libcurl
-        run: |
-            .\vcpkg\vcpkg.exe install curl[core,ssl] --triplet x86-windows-static
-
-      - name: Integrate vcpkg with MSBuild
-        run: |
-            .\vcpkg\vcpkg.exe integrate install
-
+      - name: Setup conan
+        run: pip install conan
+        
       - name: Update Plugin Version
         if: github.ref_type == 'tag'
         run: |
@@ -39,18 +28,32 @@ jobs:
           (Get-Content -Path "vSMR\SMRPlugin.hpp") -replace '#define MY_PLUGIN_VERSION.*', "#define MY_PLUGIN_VERSION   `"$tag`"" | Set-Content -Path "vSMR\SMRPlugin.hpp"
         shell: pwsh
 
-      - name: Build DLL
-        run: msbuild vSMR.sln /p:Configuration=Release /p:Platform='Win32' /p:VcpkgTriplet=x86-windows-static /m
+      - name: Cache Conan (v2)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.conan2
+          key: conan2-${{ runner.os }}-x86-Release-${{ hashFiles('conanfile.py') }}
+          restore-keys: |
+            conan2-${{ runner.os }}-x86-Release-
+
+      - name: Install dependancies
+        run: conan install . -s arch=x86 -s build_type=Release --build=missing --output-folder=build
+
+      - name: Build with cmake
+        run: |
+          cmake --preset conan-default
+          cmake --build --preset conan-release
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: vSMR.dll
-          path: Release/vSMR.dll
+          path: build/bin/Release/vSMR.dll
 
       - name: Upload to Release
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8
         if: github.ref_type == 'tag'
         with:
           files: |
-            Release/vSMR.dll
+            build/bin/Release/vSMR.dll
