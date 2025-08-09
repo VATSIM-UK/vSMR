@@ -5,14 +5,8 @@ import os
 
 
 class VsmrRecipe(ConanFile):
-    name = "vsmr"
-    version = "0.0.0-dev"
-    license = "GPL-3.0-or-later"
-    author = "VATSIM-UK"
-    description = "vSMR EuroScope plugin"
-    url = "https://github.com/VATSIM-UK/vSMR"
+    name = "vSMR"
     settings = "os", "compiler", "build_type", "arch"
-    exports = ("LICENSE",)
     exports_sources = (
         "CMakeLists.txt",
         "vSMR/*",
@@ -27,13 +21,8 @@ class VsmrRecipe(ConanFile):
         "libcurl/8.9.1",
         "rapidjson/1.1.0",
     )
-
-    options = {
-        "with_tests": [True, False],
-    }
     default_options = {
         "with_tests": False,
-        # libcurl options to minimize external deps and ensure static linkage
         "libcurl/*:shared": False,
         "libcurl/*:with_ssl": "schannel",
         "libcurl/*:with_zlib": False,
@@ -47,15 +36,10 @@ class VsmrRecipe(ConanFile):
         deps.generate()
 
         tc = CMakeToolchain(self)
-        # Prefer a single distributable DLL: link MSVC runtime statically
         tc.cache_variables["CMAKE_MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-        # Use MFC in a Static Library
         tc.cache_variables["CMAKE_MFC_FLAG"] = "2"
-        # Ensure 32-bit build when requested via -s arch=x86
-        # Generators like Ninja respect CMAKE_GENERATOR_PLATFORM; VS generator uses -A Win32
         if str(self.settings.get_safe("arch")) == "x86":
             tc.variables["CMAKE_GENERATOR_PLATFORM"] = "Win32"
-        # Default to Release if not specified
         tc.variables["CMAKE_BUILD_TYPE"] = str(self.settings.get_safe("build_type") or "Release")
         tc.generate()
 
@@ -65,7 +49,6 @@ class VsmrRecipe(ConanFile):
         cmake.build()
 
     def package(self):
-        # Stage the resulting DLL for convenience
         for src in [self.build_folder, os.path.join(self.build_folder, "bin")]:
             if os.path.isdir(src):
                 copy(self, pattern="*.dll", src=src, dst=os.path.join(self.package_folder, "bin"), keep_path=False)
