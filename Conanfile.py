@@ -22,7 +22,6 @@ class VsmrRecipe(ConanFile):
         "rapidjson/1.1.0",
     )
     default_options = {
-        "with_tests": False,
         "libcurl/*:shared": False,
         "libcurl/*:with_ssl": "schannel",
         "libcurl/*:with_zlib": False,
