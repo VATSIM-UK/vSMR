@@ -40,7 +40,7 @@ jobs:
             conan2-${{ runner.os }}-x86-Release-
 
       - name: Install dependancies
-        run: conan install . -s arch=x86 -s build_type=Release --build=missing --output-folder=build
+        run: conan install . -s arch=x86 -s compiler.cppstd=17 -s compiler.runtime=static -s build_type=Release --build=missing --output-folder=build
 
       - name: Build with cmake
         run: |
