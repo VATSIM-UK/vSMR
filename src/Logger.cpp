@@ -6,11 +6,11 @@
 #include <sstream>
 #include <stdexcept>
 
-Logger::Logger(const std::string &filename) : logFile(filename, std::ios::app)
+Logger::Logger(const std::filesystem::path &filepath) : logFile(filepath, std::ios::app)
 {
     if (!logFile)
     {
-        throw std::runtime_error("Failed to open log file: " + filename);
+        throw std::runtime_error("Failed to open log file: " + filepath.string());
     }
 }
 

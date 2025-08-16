@@ -3,6 +3,7 @@
 #include <fstream>
 #include <mutex>
 #include <string>
+#include <filesystem>
 
 enum class LogLevel
 {
@@ -15,7 +16,7 @@ enum class LogLevel
 class Logger
 {
 public:
-    explicit Logger(const std::string &filename);
+    explicit Logger(const std::filesystem::path &filepath);
     ~Logger();
 
     void log(LogLevel level, const std::string &message);
