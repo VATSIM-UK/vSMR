@@ -54,6 +54,8 @@ ADD_DEFINITIONS(
 SET(SOURCE_FILES
     src/vSMRPlugIn.cpp
     src/main.cpp
+    src/RadarDisplay.cpp
+    src/Logger.cpp
 )
 
 ADD_LIBRARY(vSMR SHARED ${SOURCE_FILES})
