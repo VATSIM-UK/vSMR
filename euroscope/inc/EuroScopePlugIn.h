@@ -1,5 +1,6 @@
 #pragma once
 
+#include<Windows.h>
 #ifndef DllSpecEuroScope
 #define DllSpecEuroScope __declspec ( dllimport )
 #define ESINDEX void *

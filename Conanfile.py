@@ -1,27 +1,17 @@
 from conan import ConanFile
-from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps, cmake_layout
+from conan.tools.cmake import cmake_layout
 
-
-class vSMRConanFile(ConanFile):
-    name = "vSMR"
-
+class vSMR(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeDeps", "CMakeToolchain"
-    exports_sources = "CMakeLists.txt", "src/*", "inc/*", "euroscope/*"
-
-    def layout(self):
-        cmake_layout(self)
+    generators = "CMakeToolchain" , "CMakeDeps"
 
     def requirements(self):
         ...
 
-    def build(self):
-        cmake = CMake(self)
-        cmake.configure(variables={"CMAKE_GENERATOR_PLATFORM": "Win32"})
-        cmake.build()
+    def build_requirements(self):
+        self.tool_requires("cmake/[>3.20.0]")
 
-    def package(self):
-        cmake = CMake(self)
-        cmake.install()
-
-
+    def layout(self):
+        cmake_layout(self)
+        
+    
