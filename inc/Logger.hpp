@@ -25,9 +25,15 @@ public:
     void error(const std::string &msg);
     void debug(const std::string &msg);
 
+    bool getStatus();
+    void startLogger();
+    void StopLogger();
+
 private:
     std::ofstream logFile;
     std::mutex mtx;
+
+    bool enabled{false};
 
     std::string levelToString(LogLevel level) const;
     std::string timestamp() const;
