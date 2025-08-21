@@ -8,6 +8,15 @@ SET(CMAKE_CXX_EXTENSIONS OFF)
 SET(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(ENABLE_CLANG_TIDY "Run clang-tidy static analysis during the build" ON)
+if(ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+    if(CLANG_TIDY_EXE)
+        set(CMAKE_CXX_CLANG_TIDY
+            "${CLANG_TIDY_EXE};-checks=-*,modernize-*;--header-filter=^${CMAKE_SOURCE_DIR}/(inc|src)/")
+    endif()
+endif()
+
 IF (MSVC)
     IF (CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
         STRING(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")

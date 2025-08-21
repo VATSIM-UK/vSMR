@@ -1,3 +1,6 @@
+@echo off
+
+
 if not exist build mkdir build
 
 echo [1/3] Conan install

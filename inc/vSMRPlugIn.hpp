@@ -18,5 +18,6 @@ namespace vSMRPlugIn
                 const std::string &message,
                 const std::string &sender = "vSMRPlugIn"
             );
+             
     };
 }

@@ -6,15 +6,15 @@
 #include <iostream>
 #include "rapidjson/document.h"
 
-DisplayProfileConfig::DisplayProfileConfig(std::filesystem::path profilesPath)
+DisplayProfileManager::DisplayProfileManager(std::filesystem::path profilesPath)
     : profiles_path(std::move(profilesPath))
 {
     loadProfiles();
 }
 
-DisplayProfileConfig::~DisplayProfileConfig() = default;
+DisplayProfileManager::~DisplayProfileManager() = default;
 
-void DisplayProfileConfig::loadProfiles()
+void DisplayProfileManager::loadProfiles()
 {
     profiles.clear();
 
@@ -33,7 +33,7 @@ void DisplayProfileConfig::loadProfiles()
     doc.Parse(json.c_str());
     if (doc.HasParseError() || !doc.IsArray())
     {
-        return; // Invalid format
+        return; // Invalid format @TODO handle error / alert user
     }
 
     for (rapidjson::SizeType i = 0; i < doc.Size(); ++i)
@@ -49,3 +49,22 @@ void DisplayProfileConfig::loadProfiles()
         }
     }
 }
+
+void DisplayProfileManager::setActiveProfile(const std::string& profileName)
+{
+    auto it = profiles.find(profileName);
+    if (it == profiles.end()){
+        throw std::invalid_argument("Profile does not exist: " + profileName);
+    }
+    active_profile_name = profileName;
+}
+
+rapidjson::SizeType DisplayProfileManager::getActiveProfile() const {
+    auto it = profiles.find(active_profile_name);
+    if (it != profiles.end())
+    {
+        return it->second;
+    }
+    throw std::runtime_error("Active profile not found");
+}
+
