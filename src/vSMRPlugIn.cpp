@@ -3,7 +3,6 @@
 
 #include <cstring>
 
-namespace vSMRPlugIn {
 
 static bool startsWith(const char* prefix, const char* str) { // @TODO remove to a utils file/class??
     if (!prefix || !str) return false;
@@ -40,5 +39,3 @@ bool vSMRPlugIn::OnCompileCommand(const char * sCommandLine)
 
     return false;
 }
-
-} // namespace vSMRPlugIn
