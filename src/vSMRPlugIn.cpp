@@ -3,32 +3,58 @@
 #include "Identifiers.hpp"
 #include "Logger.hpp"
 
+#include <windows.h>
+
 #include <cstring>
 #include <filesystem>
 
-
-static bool startsWith(const char* prefix, const char* str) { // @TODO remove to a utils file/class??
-    if (!prefix || !str) return false;
+static bool startsWith(const char *prefix, const char *str)
+{ // @TODO remove to a utils file/class??
+    if (!prefix || !str)
+        return false;
     const size_t n = std::strlen(prefix);
     return std::strncmp(str, prefix, n) == 0;
 }
 
+std::filesystem::path getDllPath()
+{
+    HMODULE hModule = nullptr;
+
+    if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | 
+                            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, 
+                            reinterpret_cast<LPCSTR>(&getDllPath), &hModule))
+    {
+        char path[MAX_PATH];
+        if (GetModuleFileName(hModule, path, MAX_PATH))
+        {
+            std::filesystem::path dllPath{path};
+            return dllPath.parent_path();
+        }
+    }
+    auto currentPath = std::filesystem::current_path();
+    if (std::filesystem::exists(currentPath / "UK/Data/Plugin/vSMR/vSMR.dll"))
+    {
+        return currentPath / "UK/Data/Plugin/vSMR/vSMR.dll";
+    }
+    
+    return currentPath;
+}
+
 vSMRPlugIn::vSMRPlugIn() : EuroScopePlugIn::CPlugIn(
-    EuroScopePlugIn::COMPATIBILITY_CODE,
-    PLUGIN_NAME,
-    PLUGIN_VERSION,
-    PLUGIN_DEVELOPERS,
-    PLUGIN_COPYRIGHT)
+                               EuroScopePlugIn::COMPATIBILITY_CODE,
+                               PLUGIN_NAME,
+                               PLUGIN_VERSION,
+                               PLUGIN_DEVELOPERS,
+                               PLUGIN_COPYRIGHT)
 {
 
     try
     {
-        auto logPath = std::filesystem::current_path() / "vSMR.log";
+        auto logPath = getDllPath() / "vSMR.log";
         Logger::initialise(logPath);
         Logger::getInstance().info("vSMR Plugin Initialised - Version " + std::string(PLUGIN_VERSION));
-
     }
-    catch (const std::exception & e)
+    catch (const std::exception &e)
     {
         DisplayMessage("Failed to initialise vSMR logger: " + std::string(e.what()), "Error");
     }
@@ -49,7 +75,7 @@ void vSMRPlugIn::DisplayMessage(const std::string &message, const std::string &s
     DisplayUserMessage(PLUGIN_NAME, sender.c_str(), message.c_str(), true, false, false, false, false);
 }
 
-bool vSMRPlugIn::OnCompileCommand(const char * sCommandLine)
+bool vSMRPlugIn::OnCompileCommand(const char *sCommandLine)
 {
     if (startsWith(".smr hello", sCommandLine))
     {
