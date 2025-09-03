@@ -5,19 +5,24 @@
 #pragma warning(pop)
 
 #include <string>
+#include <filesystem>
 
 
 class vSMRPlugIn : public EuroScopePlugIn::CPlugIn
 {
-    public:
-        vSMRPlugIn();
-        ~vSMRPlugIn();
+public:
+    vSMRPlugIn();
+    ~vSMRPlugIn();
 
-        void DisplayMessage(
-            const std::string &message,
-            const std::string &sender = "vSMRPlugIn"
-        );
+    void DisplayMessage(
+        const std::string &message,
+        const std::string &sender = "vSMRPlugIn"
+    );
 
-        bool OnCompileCommand(const char * sComandLine);
+    bool OnCompileCommand(const char * sComandLine);
+
+
+private:
+       
             
 };

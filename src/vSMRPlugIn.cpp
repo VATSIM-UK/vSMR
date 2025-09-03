@@ -1,7 +1,10 @@
 #include "vSMRPlugIn.hpp"
 #include "Version.h"
+#include "Identifiers.hpp"
+#include "Logger.hpp"
 
 #include <cstring>
+#include <filesystem>
 
 
 static bool startsWith(const char* prefix, const char* str) { // @TODO remove to a utils file/class??
@@ -17,7 +20,24 @@ vSMRPlugIn::vSMRPlugIn() : EuroScopePlugIn::CPlugIn(
     PLUGIN_DEVELOPERS,
     PLUGIN_COPYRIGHT)
 {
+
+    try
+    {
+        auto logPath = std::filesystem::current_path() / "vSMR.log";
+        Logger::initialise(logPath);
+        Logger::getInstance().info("vSMR Plugin Initialised - Version " + std::string(PLUGIN_VERSION));
+
+    }
+    catch (const std::exception & e)
+    {
+        DisplayMessage("Failed to initialise vSMR logger: " + std::string(e.what()), "Error");
+    }
+
     DisplayMessage("Version " + std::string(PLUGIN_VERSION) + " loaded", "Initialisation");
+    RegisterDisplayType(PLUGIN_VIEW_AVISO, false, true, true, true);
+
+    RegisterTagItemType("Datalink clearance", TAG_ITEM_DATALINK_STATUS);
+    RegisterTagItemFunction("Datalink menu", TAG_FUNCTION_DATALINK_MENU);
 }
 
 vSMRPlugIn::~vSMRPlugIn()
@@ -33,6 +53,7 @@ bool vSMRPlugIn::OnCompileCommand(const char * sCommandLine)
 {
     if (startsWith(".smr hello", sCommandLine))
     {
+        Logger::getInstance().info("Called Hello command");
         DisplayUserMessage("vSMR", "vSMR", "Hello!", true, true, false, true, false);
         return true;
     }
