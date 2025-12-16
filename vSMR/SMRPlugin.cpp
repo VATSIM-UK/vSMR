@@ -54,6 +54,7 @@ string ttype;
 int messageId = 0;
 
 clock_t timer;
+int pollInterval = 45 + rand() % 31; // Random interval between 45-75 seconds
 
 string myfrequency;
 
@@ -663,9 +664,10 @@ void CSMRPlugin::OnTimer(int Counter)
 		HoppieConnected = false;
 	}
 
-	if (((clock() - timer) / CLOCKS_PER_SEC) > 60 && HoppieConnected) {
+	if (((clock() - timer) / CLOCKS_PER_SEC) > pollInterval && HoppieConnected) {
 		_beginthread(pollMessages, 0, NULL);
 		timer = clock();
+		pollInterval = 45 + rand() % 31; // Next random interval between 45-75 seconds
 	}
 
 	for (auto &ac : AircraftWilco)
