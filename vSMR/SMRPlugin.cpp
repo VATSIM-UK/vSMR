@@ -663,7 +663,7 @@ void CSMRPlugin::OnTimer(int Counter)
 		HoppieConnected = false;
 	}
 
-	if (((clock() - timer) / CLOCKS_PER_SEC) > 10 && HoppieConnected) {
+	if (((clock() - timer) / CLOCKS_PER_SEC) > 60 && HoppieConnected) {
 		_beginthread(pollMessages, 0, NULL);
 		timer = clock();
 	}
