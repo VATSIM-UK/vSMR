@@ -42,6 +42,8 @@ struct AcarsMessage {
 
 vector<string> AircraftDemandingClearance;
 vector<string> AircraftMessageSent;
+vector<string> AircraftClearedByDatalink;
+map<string, clock_t> AircraftClearedTimestamps;
 vector<string> AircraftMessage;
 vector<string> AircraftWilco;
 vector<string> AircraftStandby;
@@ -222,7 +224,8 @@ void pollMessages(void * arg) {
 				}
 			}
 			else if (message.message.find("WILCO") != std::string::npos || message.message.find("ROGER") != std::string::npos || message.message.find("RGR") != std::string::npos || message.message.find("ACCEPT") != std::string::npos) {
-				if (std::find(AircraftMessageSent.begin(), AircraftMessageSent.end(), message.from) != AircraftMessageSent.end()) {
+				// Only send confirmation if this aircraft actually received a clearance (not just a voice message)
+				if (std::find(AircraftClearedByDatalink.begin(), AircraftClearedByDatalink.end(), message.from) != AircraftClearedByDatalink.end()) {
 					AircraftWilco.push_back(message.from);
 					string timeS, dateS;
 					formatNowTimeDate(timeS, dateS);
@@ -232,6 +235,10 @@ void pollMessages(void * arg) {
 					clearanceAck += " CLEARANCE CONFIRMED";
 					createPlainCpdlcMessage(clearanceAck.c_str(), "NE");
 					_beginthread(sendDatalinkMessage, 0, NULL);
+					
+					// Remove from cleared list - clearance workflow is complete
+					AircraftClearedByDatalink.erase(std::remove(AircraftClearedByDatalink.begin(), AircraftClearedByDatalink.end(), message.from), AircraftClearedByDatalink.end());
+					AircraftClearedTimestamps.erase(message.from);
 				}
 			}
 			else if (message.message.length() != 0 ){
@@ -314,6 +321,8 @@ if (DatalinkToSend.sid == "CHK" && DatalinkToSend.rwy == "09R") // CPT 09R
 		if (PendingMessages.find(DatalinkToSend.callsign) != PendingMessages.end())
 			PendingMessages.erase(DatalinkToSend.callsign);
 		AircraftMessageSent.push_back(DatalinkToSend.callsign.c_str());
+		AircraftClearedByDatalink.push_back(DatalinkToSend.callsign.c_str());
+		AircraftClearedTimestamps[DatalinkToSend.callsign] = clock();
 	}
 };
 
@@ -511,6 +520,10 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			if (std::find(AircraftMessageSent.begin(), AircraftMessageSent.end(), FlightPlan.GetCallsign()) != AircraftMessageSent.end()) {
 				AircraftMessageSent.erase(std::remove(AircraftMessageSent.begin(), AircraftMessageSent.end(), FlightPlan.GetCallsign()), AircraftMessageSent.end());
 			}
+			if (std::find(AircraftClearedByDatalink.begin(), AircraftClearedByDatalink.end(), FlightPlan.GetCallsign()) != AircraftClearedByDatalink.end()) {
+				AircraftClearedByDatalink.erase(std::remove(AircraftClearedByDatalink.begin(), AircraftClearedByDatalink.end(), FlightPlan.GetCallsign()), AircraftClearedByDatalink.end());
+				AircraftClearedTimestamps.erase(FlightPlan.GetCallsign());
+			}
 			if (std::find(AircraftWilco.begin(), AircraftWilco.end(), FlightPlan.GetCallsign()) != AircraftWilco.end()) {
 				AircraftWilco.erase(std::remove(AircraftWilco.begin(), AircraftWilco.end(), FlightPlan.GetCallsign()), AircraftWilco.end());
 			}
@@ -662,6 +675,17 @@ void CSMRPlugin::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 
 	if (std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(), rt.GetSystemID()) != ManuallyCorrelated.end())
 		ManuallyCorrelated.erase(std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(), rt.GetSystemID()));
+
+	// Clean up all datalink tracking lists
+	string callsign = FlightPlan.GetCallsign();
+	AircraftDemandingClearance.erase(std::remove(AircraftDemandingClearance.begin(), AircraftDemandingClearance.end(), callsign), AircraftDemandingClearance.end());
+	AircraftMessageSent.erase(std::remove(AircraftMessageSent.begin(), AircraftMessageSent.end(), callsign), AircraftMessageSent.end());
+	AircraftClearedByDatalink.erase(std::remove(AircraftClearedByDatalink.begin(), AircraftClearedByDatalink.end(), callsign), AircraftClearedByDatalink.end());
+	AircraftClearedTimestamps.erase(callsign);
+	AircraftMessage.erase(std::remove(AircraftMessage.begin(), AircraftMessage.end(), callsign), AircraftMessage.end());
+	AircraftWilco.erase(std::remove(AircraftWilco.begin(), AircraftWilco.end(), callsign), AircraftWilco.end());
+	AircraftStandby.erase(std::remove(AircraftStandby.begin(), AircraftStandby.end(), callsign), AircraftStandby.end());
+	PendingMessages.erase(callsign);
 }
 
 void CSMRPlugin::OnTimer(int Counter)
@@ -688,6 +712,18 @@ void CSMRPlugin::OnTimer(int Counter)
 		_beginthread(pollMessages, 0, NULL);
 		timer = clock();
 		pollInterval = 45 + rand() % 31; // Next random interval between 45-75 seconds
+	}
+
+	// Remove cleared aircraft after 5 minutes (300 seconds)
+	clock_t currentTime = clock();
+	for (auto it = AircraftClearedTimestamps.begin(); it != AircraftClearedTimestamps.end(); ) {
+		if (((currentTime - it->second) / CLOCKS_PER_SEC) > 300) {
+			string callsign = it->first;
+			AircraftClearedByDatalink.erase(std::remove(AircraftClearedByDatalink.begin(), AircraftClearedByDatalink.end(), callsign), AircraftClearedByDatalink.end());
+			it = AircraftClearedTimestamps.erase(it);
+		} else {
+			++it;
+		}
 	}
 
 	for (auto &ac : AircraftWilco)
