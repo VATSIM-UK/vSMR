@@ -188,16 +188,36 @@ void pollMessages(void * arg) {
 						AFX_MANAGE_STATE(AfxGetStaticModuleState());
 						PlaySound(MAKEINTRESOURCE(IDR_WAVE1), AfxGetInstanceHandle(), SND_RESOURCE | SND_ASYNC);
 					}
-					AircraftDemandingClearance.push_back(message.from);
 					string timeS, dateS;
 					formatNowTimeDate(timeS, dateS);
-					// Send ack 
+					// Send ack synchronously before adding to clearance queue
 					string reqAck = "DEPART MESSAGE REQUEST RECEIVED ";
 					reqAck += timeS + " " + dateS;
 					reqAck += " REQUEST BEING PROCESSED";
-					createPlainCpdlcMessage(reqAck.c_str(), "NE");
-					tdest = message.from;
-					_beginthread(sendDatalinkMessage, 0, NULL);
+					
+					string raw;
+					string url = baseUrlDatalink;
+					url += "?logon=";
+					url += logonCode;
+					url += "&from=";
+					url += logonCallsign;
+					url += "&to=";
+					url += message.from;
+					url += "&type=CPDLC&packet=/data2/";
+					url += std::to_string(++messageId);
+					url += "//NE/";
+					url += reqAck;
+
+					size_t start_pos = 0;
+					while ((start_pos = url.find(" ", start_pos)) != std::string::npos) {
+						url.replace(start_pos, string(" ").length(), "%20");
+						start_pos += string("%20").length();
+					}
+
+					raw.assign(httpHelper->downloadStringFromURL(url));
+					
+					// Only add to clearance queue after ack is sent
+					AircraftDemandingClearance.push_back(message.from);
 				}
 			}
 			else if (message.message.find("WILCO") != std::string::npos || message.message.find("ROGER") != std::string::npos || message.message.find("RGR") != std::string::npos || message.message.find("ACCEPT") != std::string::npos) {
