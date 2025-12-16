@@ -2,7 +2,7 @@ name: Build DLL
 
 on:
   pull_request:
-    branches: [main,master,dev,develop]
+    branches: [master,main,dev,develop]
   release:
     types: [published]
 
