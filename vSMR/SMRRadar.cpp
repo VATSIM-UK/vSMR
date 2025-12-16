@@ -283,6 +283,12 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 	if ((p_value = GetDataFromAsr("WIPareas")) != NULL)
 		wipAreasActive = atoi(p_value);
 
+	if ((p_value = GetDataFromAsr("ShowAircraftType")) != NULL)
+		showAircraftType = atoi(p_value) == 1 ? true : false;
+
+	if ((p_value = GetDataFromAsr("ShowSID")) != NULL)
+		showSID = atoi(p_value) == 1 ? true : false;
+
 	string temp;
 
 	for (int i = 1; i < 3; i++)
@@ -662,6 +668,8 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			GetPlugIn()->AddPopupListElement("SRW 1", "", APPWINDOW_ONE, false, int(appWindowDisplays[1]));
 			GetPlugIn()->AddPopupListElement("SRW 2", "", APPWINDOW_TWO, false, int(appWindowDisplays[2]));
 			GetPlugIn()->AddPopupListElement("WIP Areas", "", WIP_AREAS, false, int(wipAreasActive));
+			GetPlugIn()->AddPopupListElement("Show Aircraft Type", "", RIMCAS_TOGGLE_AIRCRAFT_TYPE, false, int(showAircraftType));
+			GetPlugIn()->AddPopupListElement("Show SID", "", RIMCAS_TOGGLE_SID, false, int(showSID));
 			GetPlugIn()->AddPopupListElement("Profiles", "", RIMCAS_OPEN_LIST);
 			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		}
@@ -1038,6 +1046,16 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		ListAreas[string(sItemString)] = Area;
 
 		RequestRefresh();
+	}
+
+	if (FunctionId == RIMCAS_TOGGLE_AIRCRAFT_TYPE) {
+		showAircraftType = !showAircraftType;
+		SaveDataToAsr("ShowAircraftType", "Show Aircraft Type", std::to_string(showAircraftType).c_str());
+	}
+
+	if (FunctionId == RIMCAS_TOGGLE_SID) {
+		showSID = !showSID;
+		SaveDataToAsr("ShowSID", "Show SID", std::to_string(showSID).c_str());
 	}
 
 	if (FunctionId == RIMCAS_UPDATE_LVP) {
@@ -1623,8 +1641,8 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	}
 
 	TagReplacingMap["callsign"] = callsign;
-	TagReplacingMap["actype"] = actype;
-	TagReplacingMap["sctype"] = sctype;
+	TagReplacingMap["actype"] = showAircraftType ? actype : "";
+	TagReplacingMap["sctype"] = showAircraftType ? sctype : "";
 	TagReplacingMap["sqerror"] = sqerror;
 	TagReplacingMap["deprwy"] = deprwy;
 	TagReplacingMap["seprwy"] = seprwy;
@@ -1637,8 +1655,8 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	TagReplacingMap["tendency"] = tendency;
 	TagReplacingMap["wake"] = wake;
 	TagReplacingMap["ssr"] = tssr;
-	TagReplacingMap["asid"] = dep;
-	TagReplacingMap["ssid"] = ssid;
+	TagReplacingMap["asid"] = showSID ? dep : "";
+	TagReplacingMap["ssid"] = showSID ? ssid : "";
 	TagReplacingMap["origin"] = origin;
 	TagReplacingMap["dest"] = dest;
 	TagReplacingMap["groundstatus"] = gstat;

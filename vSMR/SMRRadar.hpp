@@ -133,6 +133,9 @@ public:
 	int Trail_App = 4;
 	int PredictedLength = 0;
 
+	bool showAircraftType = true;
+	bool showSID = true;
+
 	bool NeedCorrelateCursor = false;
 	bool ReleaseInProgress = false;
 	bool AcquireInProgress = false;
