@@ -2319,10 +2319,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			const Value& line = LabelLines[i];
 			vector<string> lineStringArray;
 
-			// Adds one line height
-			TagHeight += oneLineHeight;
-
 			int TempTagWidth = 0;
+			bool lineHasContent = false;
 
 			for(unsigned int j = 0; j < line.Size(); j++)
 			{
@@ -2334,14 +2332,39 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				lineStringArray.push_back(element);
 
+				// Check if this element has actual content
+				if (!element.empty()) {
+					lineHasContent = true;
+				}
+
 				wstring wstr = wstring(element.begin(), element.end());
 				graphics.MeasureString(wstr.c_str(), wcslen(wstr.c_str()),
 					customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mesureRect);
 
 				TempTagWidth += (int) mesureRect.GetRight();
 
-				if (j != line.Size() - 1)
-					TempTagWidth += (int) blankWidth;
+				// Only add blank space if this element is not empty AND there's a next element that's not empty
+				if (!element.empty() && j != line.Size() - 1) {
+					// Check if any subsequent element has content
+					bool hasNextContent = false;
+					for (unsigned int k = j + 1; k < line.Size(); k++) {
+						string nextElement = line[k].GetString();
+						for (auto& kv : TagReplacingMap)
+							replaceAll(nextElement, kv.first, kv.second);
+						if (!nextElement.empty()) {
+							hasNextContent = true;
+							break;
+						}
+					}
+					if (hasNextContent) {
+						TempTagWidth += (int) blankWidth;
+					}
+				}
+			}
+
+			// Only add height for lines that have actual content
+			if (lineHasContent) {
+				TagHeight += oneLineHeight;
 			}
 
 			LineWidths.push_back(TempTagWidth); // Store actual line width
@@ -2457,8 +2480,24 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		int lineIndex = 0;
 		for (auto&& line : ReplacedLabelLines)
 		{
+			// Check if line has any content
+			bool lineHasContent = false;
+			for (auto&& element : line) {
+				if (!element.empty()) {
+					lineHasContent = true;
+					break;
+				}
+			}
+
+			// Skip empty lines
+			if (!lineHasContent) {
+				lineIndex++;
+				continue;
+			}
+
 			// Left-align all text
 			int widthOffset = 0;
+			int elementIndex = 0;
 			
 			for (auto&& element : line)
 			{
@@ -2495,7 +2534,21 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				AddScreenObject(TagClickableMap[element], rt.GetCallsign(), ItemRect, true, GetBottomLine(rt.GetCallsign()).c_str());
 
 				widthOffset += (int)mRect.GetRight();
-				widthOffset += blankWidth;
+				
+				// Only add blank space if this element is not empty AND there's a next element with content
+				if (!element.empty() && elementIndex < line.size() - 1) {
+					bool hasNextContent = false;
+					for (size_t k = elementIndex + 1; k < line.size(); k++) {
+						if (!line[k].empty()) {
+							hasNextContent = true;
+							break;
+						}
+					}
+					if (hasNextContent) {
+						widthOffset += blankWidth;
+					}
+				}
+				elementIndex++;
 			}
 
 			heightOffset += oneLineHeight;
