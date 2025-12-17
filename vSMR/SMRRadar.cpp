@@ -2308,6 +2308,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		const Value& LabelsSettings = CurrentConfig->getActiveProfile()["labels"];
 		const Value& LabelLines = LabelsSettings[Utils::getEnumString(TagType).c_str()]["definition"];
 		vector<vector<string>> ReplacedLabelLines;
+		vector<int> LineWidths; // Store width of each line
 
 		if (!LabelLines.IsArray())
 			return;
@@ -2343,11 +2344,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					TempTagWidth += (int) blankWidth;
 			}
 
+			LineWidths.push_back(TempTagWidth); // Store actual line width
 			TagWidth = max(TagWidth, TempTagWidth);
 
 			ReplacedLabelLines.push_back(lineStringArray);
 		}
-		TagHeight = TagHeight - 2;
 
 		Color definedBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color"]);
 		
@@ -2453,9 +2454,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		// Clickable zones
 		int heightOffset = 0;
+		int lineIndex = 0;
 		for (auto&& line : ReplacedLabelLines)
 		{
+			// Left-align all text
 			int widthOffset = 0;
+			
 			for (auto&& element : line)
 			{
 				SolidBrush* color = &FontColor;
@@ -2495,6 +2499,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			}
 
 			heightOffset += oneLineHeight;
+			lineIndex++;
 		}
 
 
