@@ -40,7 +40,7 @@
       "departure": {
         "definition": [
           [ "callsign" ],
-          [ "sctype", "deprwy" ]
+          [ "actype", "asid" ]
         ],
         "background_color": {
           "r": 40,
@@ -242,7 +242,7 @@
       "departure": {
         "definition": [
           [ "callsign" ],
-          [ "sctype", "deprwy" ]
+          [ "actype", "asid" ]
         ],
         "background_color": {
           "r": 40,
@@ -445,7 +445,7 @@
       "departure": {
         "definition": [
           [ "callsign" ],
-          [ "actype" ]
+          [ "actype", "asid" ]
         ],
         "background_color": {
           "r": 0,
@@ -791,7 +791,8 @@
       },
       "departure": {
         "definition": [
-          [ "callsign" ]
+          [ "callsign" ],
+          [ "actype", "asid" ]
         ],
         "background_color": {
           "r": 0,
@@ -1028,7 +1029,8 @@
       },
       "departure": {
         "definition": [
-          [ "callsign" ]
+          [ "callsign" ],
+          [ "actype", "asid" ]
         ],
         "background_color": {
           "r": 0,
@@ -1318,7 +1320,7 @@
       "departure": {
         "definition": [
           [ "callsign" ],
-          [ "sctype", "asid" ]
+          [ "actype", "asid" ]
         ],
         "background_color": {
           "r": 40,
