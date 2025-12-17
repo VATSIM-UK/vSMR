@@ -135,6 +135,7 @@ public:
 
 	bool showAircraftType = true;
 	bool showSID = true;
+	bool showWakeTurb = true;
 
 	bool NeedCorrelateCursor = false;
 	bool ReleaseInProgress = false;
@@ -165,7 +166,7 @@ public:
 
 	//---GenerateTagData--------------------------------------------
 
-	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates, string ActiveAirport, bool showAircraftType, bool showSID);
+	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates, string ActiveAirport, bool showAircraftType, bool showSID, bool showWakeTurb);
 
 	//---IsCorrelatedFuncs---------------------------------------------
 

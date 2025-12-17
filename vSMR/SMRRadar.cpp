@@ -289,6 +289,9 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 	if ((p_value = GetDataFromAsr("ShowSID")) != NULL)
 		showSID = atoi(p_value) == 1 ? true : false;
 
+	if ((p_value = GetDataFromAsr("ShowWakeTurb")) != NULL)
+		showWakeTurb = atoi(p_value) == 1 ? true : false;
+
 	string temp;
 
 	for (int i = 1; i < 3; i++)
@@ -367,6 +370,12 @@ void CSMRRadar::OnAsrContentToBeSaved()
 	SaveDataToAsr("PredictedLine", "vSMR Predicted Track Lines", std::to_string(PredictedLength).c_str());
 
 	SaveDataToAsr("WIPareas", "vSMR WIP Areas", std::to_string(wipAreasActive).c_str());
+
+	SaveDataToAsr("ShowAircraftType", "Show Aircraft Type", std::to_string(showAircraftType).c_str());
+
+	SaveDataToAsr("ShowSID", "Show SID", std::to_string(showSID).c_str());
+
+	SaveDataToAsr("ShowWakeTurb", "Show Wake Turbulence", std::to_string(showWakeTurb).c_str());
 
 	string temp = "";
 
@@ -670,6 +679,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			GetPlugIn()->AddPopupListElement("WIP Areas", "", WIP_AREAS, false, int(wipAreasActive));
 			GetPlugIn()->AddPopupListElement("Show Aircraft Type", "", RIMCAS_TOGGLE_AIRCRAFT_TYPE, false, int(showAircraftType));
 			GetPlugIn()->AddPopupListElement("Show SID", "", RIMCAS_TOGGLE_SID, false, int(showSID));
+			GetPlugIn()->AddPopupListElement("Show Wake Catagory", "", RIMCAS_TOGGLE_WAKE_TURB, false, int(showWakeTurb));
 			GetPlugIn()->AddPopupListElement("Profiles", "", RIMCAS_OPEN_LIST);
 			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		}
@@ -1058,6 +1068,11 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		SaveDataToAsr("ShowSID", "Show SID", std::to_string(showSID).c_str());
 	}
 
+	if (FunctionId == RIMCAS_TOGGLE_WAKE_TURB) {
+		showWakeTurb = !showWakeTurb;
+		SaveDataToAsr("ShowWakeTurb", "Show Wake Turbulence", std::to_string(showWakeTurb).c_str());
+	}
+
 	if (FunctionId == RIMCAS_UPDATE_LVP) {
 		if (strcmp(sItemString, "Normal") == 0)
 			isLVP = false;
@@ -1387,7 +1402,7 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 	return false;
 }
 
-map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates, string ActiveAirport, bool showAircraftType, bool showSID)
+map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates, string ActiveAirport, bool showAircraftType, bool showSID, bool showWakeTurb)
 {
 	Logger::info(string(__FUNCSIG__));
 	// ----
@@ -1653,7 +1668,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	TagReplacingMap["flightlevel"] = flightlevel;
 	TagReplacingMap["gs"] = speed;
 	TagReplacingMap["tendency"] = tendency;
-	TagReplacingMap["wake"] = wake;
+	TagReplacingMap["wake"] = showWakeTurb ? wake : "";
 	TagReplacingMap["ssr"] = tssr;
 	TagReplacingMap["asid"] = showSID ? dep : "";
 	TagReplacingMap["ssid"] = showSID ? ssid : "";
@@ -2263,7 +2278,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			ColorTagType = TagTypes::Uncorrelated;
 		}
 
-		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, IsCorrelated(fp, rt), CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool(), getActiveAirport(), showAircraftType, showSID);
+		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, IsCorrelated(fp, rt), CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool(), getActiveAirport(), showAircraftType, showSID, showWakeTurb);
 
 		// ----- Generating the clickable map -----
 		map<string, int> TagClickableMap;
