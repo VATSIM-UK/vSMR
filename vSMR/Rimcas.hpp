@@ -34,12 +34,18 @@ public:
 
 	enum RimcasAlertTypes { NoAlert, StageOne, StageTwo };
 
+	struct AircraftInfo {
+		string callsign = "";
+		string type = "";
+		string stand = "";
+	};
+
 	map<string, RunwayAreaType> RunwayAreas;
 	multimap<string, string> AcOnRunway;
 	vector<int> CountdownDefinition;
 	vector<int> CountdownDefinitionLVP;
 	multimap<string, string> ApproachingAircrafts;
-	map<string, map<int, string>> TimeTable;
+	map<string, map<int, AircraftInfo>> TimeTable;
 	map<string, bool> MonitoredRunwayDep;
 	map<string, bool> MonitoredRunwayArr;
 	map<string, RimcasAlertTypes> AcColor;
@@ -104,7 +110,7 @@ public:
 	}
 
 	string GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance);
-	string GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, bool isCorrelated);
+	string GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, bool isCorrelated, string acType = "", string acStand = "");
 	void AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, vector<CPosition> Definition);
 	Color GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor, Color RimcasStageOne, Color RimcasStageTwo);
 	Color GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor);
@@ -114,7 +120,7 @@ public:
 	vector<CPosition> GetRunwayArea(CPosition Left, CPosition Right, float hwidth = 92.5f);
 
 	void OnRefreshBegin(bool isLVP);
-	void OnRefresh(CRadarTarget Rt, CRadarScreen *instance, bool isCorrelated);
+	void OnRefresh(CRadarTarget Rt, CRadarScreen *instance, bool isCorrelated, string acType = "", string acStand = "");
 	void OnRefreshEnd(CRadarScreen *instance, int threshold);
 	void Reset();
 

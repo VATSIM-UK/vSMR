@@ -30,10 +30,10 @@ void CRimcas::OnRefreshBegin(bool isLVP) {
 	this->IsLVP = isLVP;
 }
 
-void CRimcas::OnRefresh(CRadarTarget Rt, CRadarScreen *instance, bool isCorrelated) {
+void CRimcas::OnRefresh(CRadarTarget Rt, CRadarScreen *instance, bool isCorrelated, string acType, string acStand) {
 	Logger::info(string(__FUNCSIG__));
 	GetAcInRunwayArea(Rt, instance);
-	GetAcInRunwayAreaSoon(Rt, instance, isCorrelated);
+	GetAcInRunwayAreaSoon(Rt, instance, isCorrelated, acType, acStand);
 }
 
 void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, vector<CPosition> Definition) {
@@ -79,7 +79,7 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 	return string_false;
 }
 
-string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, bool isCorrelated) {
+string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, bool isCorrelated, string acType, string acStand) {
 	Logger::info(string(__FUNCSIG__));
 	int AltitudeDif = Ac.GetPosition().GetFlightLevel() - Ac.GetPreviousPosition(Ac.GetPosition()).GetFlightLevel();
 	if (!Ac.GetPosition().GetTransponderC())
@@ -164,7 +164,11 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 					}
 					if (t < PreviousTime && t >= Time)
 					{
-						TimeTable[it->first][Time] = Ac.GetCallsign();
+						AircraftInfo info;
+						info.callsign = Ac.GetCallsign();
+						info.type = acType;
+						info.stand = acStand;
+						TimeTable[it->first][Time] = info;
 						break;
 					}
 				}

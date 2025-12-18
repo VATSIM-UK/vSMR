@@ -728,6 +728,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			GetPlugIn()->AddPopupListElement("Conflict Alert DEP", "", RIMCAS_OPEN_LIST);
 			GetPlugIn()->AddPopupListElement("Runway closed", "", RIMCAS_OPEN_LIST);
 			GetPlugIn()->AddPopupListElement("Visibility", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("RIMCAS Detail", "", RIMCAS_OPEN_LIST);
 			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		}
 
@@ -1080,6 +1081,15 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 			isLVP = true;
 
 		ShowLists["Visibility"] = true;
+	}
+
+	if (FunctionId == RIMCAS_UPDATE_DETAILED) {
+		if (strcmp(sItemString, "Detailed") == 0)
+			detailedRIMCAS = true;
+		if (strcmp(sItemString, "Simple") == 0)
+			detailedRIMCAS = false;
+
+		ShowLists["RIMCAS Detail"] = true;
 
 		RequestRefresh();
 	}
@@ -1997,7 +2007,18 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		if (!isAcDisplayed)
 			continue;
 
-		RimcasInstance->OnRefresh(rt, this, IsCorrelated(GetPlugIn()->FlightPlanSelect(rt.GetCallsign()), rt));
+		// Get aircraft type and stand for RIMCAS
+		CFlightPlan fp = GetPlugIn()->FlightPlanSelect(rt.GetCallsign());
+		string acType = "";
+		string acStand = "";
+		if (fp.IsValid() && fp.GetFlightPlanData().IsReceived()) {
+			acType = fp.GetFlightPlanData().GetAircraftFPType();
+			acStand = fp.GetControllerAssignedData().GetFlightStripAnnotation(3);
+			if (acStand.length() == 0)
+				acStand = "";
+		}
+
+		RimcasInstance->OnRefresh(rt, this, IsCorrelated(fp, rt), acType, acStand);
 
 		CRadarTargetPositionData RtPos = rt.GetPosition();
 
@@ -2582,6 +2603,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	COLORREF oldColor = dc.SetTextColor(RGB(33, 33, 33));
 
 	int TextHeight = dc.GetTextExtent("60").cy;
+	int LineSpacing = TextHeight + 3; // Add 3 pixels between lines
 	Logger::info("RIMCAS Loop");
 	for (std::map<string, bool>::iterator it = RimcasInstance->MonitoredRunwayArr.begin(); it != RimcasInstance->MonitoredRunwayArr.end(); ++it)
 	{
@@ -2592,8 +2614,44 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		if (isLVP)
 			TimeDefinition = RimcasInstance->CountdownDefinitionLVP;
 
+		// Calculate box dimensions based on content
+		int maxWidth = 0;
+		char buffer[256];
+		for (auto &Time : TimeDefinition)
+		{
+			if (RimcasInstance->TimeTable[it->first].find(Time) != RimcasInstance->TimeTable[it->first].end())
+			{
+				auto acInfo = RimcasInstance->TimeTable[it->first][Time];
+				if (detailedRIMCAS)
+				{
+					sprintf_s(buffer, "%2d: %-10s %-8s %s", 
+						Time, 
+						acInfo.callsign.c_str(),
+						acInfo.type.empty() ? "" : acInfo.type.c_str(),
+						acInfo.stand.empty() ? "" : acInfo.stand.c_str());
+				}
+				else
+				{
+					sprintf_s(buffer, "%2d: %s", Time, acInfo.callsign.c_str());
+				}
+			}
+			else
+			{
+				sprintf_s(buffer, "%2d: ", Time);
+			}
+			int textWidth = dc.GetTextExtent(buffer).cx;
+			if (textWidth > maxWidth)
+				maxWidth = textWidth;
+		}
+		
+		int boxPadding = detailedRIMCAS ? 15 : 10; // Smaller padding for simple mode
+		int boxWidth = maxWidth + boxPadding;
+		int boxHeight = LineSpacing * (TimeDefinition.size() + 1) + 5; // +1 for runway name, +5px total padding
+
 		if (TimePopupAreas.find(it->first) == TimePopupAreas.end())
-			TimePopupAreas[it->first] = { 300, 300, 430, 300+LONG(TextHeight*(TimeDefinition.size()+1)) };
+			TimePopupAreas[it->first] = { 300, 300, 300 + boxWidth, 300 + boxHeight };
+		else
+			TimePopupAreas[it->first] = { TimePopupAreas[it->first].left, TimePopupAreas[it->first].top, TimePopupAreas[it->first].left + boxWidth, TimePopupAreas[it->first].top + boxHeight };
 
 		CRect CRectTime = TimePopupAreas[it->first];
 		CRectTime.NormalizeRect();
@@ -2602,34 +2660,60 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		// Drawing the runway name
 		string tempS = it->first;
-		dc.TextOutA(CRectTime.left + CRectTime.Width() / 2 - dc.GetTextExtent(tempS.c_str()).cx / 2, CRectTime.top, tempS.c_str());
+		dc.TextOutA(CRectTime.left + CRectTime.Width() / 2 - dc.GetTextExtent(tempS.c_str()).cx / 2, CRectTime.top + 2, tempS.c_str());
 
-		int TopOffset = TextHeight;
+		int TopOffset = LineSpacing;
 		// Drawing the times
 		for (auto &Time : TimeDefinition)
 		{
 			dc.SetTextColor(RGB(33, 33, 33));
 
-			tempS = std::to_string(Time) + ": " + RimcasInstance->TimeTable[it->first][Time];
-			if (RimcasInstance->AcColor.find(RimcasInstance->TimeTable[it->first][Time]) != RimcasInstance->AcColor.end())
+			// Get aircraft info from TimeTable
+			if (RimcasInstance->TimeTable[it->first].find(Time) != RimcasInstance->TimeTable[it->first].end())
 			{
-				CBrush RimcasBrush(RimcasInstance->GetAircraftColor(RimcasInstance->TimeTable[it->first][Time],
-					Color::Black,
-					Color::Black,
-					CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
-					CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"])).ToCOLORREF()
-					);
+				auto acInfo = RimcasInstance->TimeTable[it->first][Time];
+				
+				// Build formatted string with fixed spacing
+				char buffer[256];
+				if (detailedRIMCAS)
+				{
+					sprintf_s(buffer, "%2d: %-10s %-8s %s", 
+						Time, 
+						acInfo.callsign.c_str(),
+						acInfo.type.empty() ? "" : acInfo.type.c_str(),
+						acInfo.stand.empty() ? "" : acInfo.stand.c_str());
+				}
+				else
+				{
+					sprintf_s(buffer, "%2d: %s", Time, acInfo.callsign.c_str());
+				}
+				tempS = buffer;
 
-				CRect TempRect = { CRectTime.left, CRectTime.top + TopOffset, CRectTime.right, CRectTime.top + TopOffset + TextHeight };
-				TempRect.NormalizeRect();
+				if (RimcasInstance->AcColor.find(acInfo.callsign) != RimcasInstance->AcColor.end())
+				{
+					CBrush RimcasBrush(RimcasInstance->GetAircraftColor(acInfo.callsign,
+						Color::Black,
+						Color::Black,
+						CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
+						CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"])).ToCOLORREF()
+						);
 
-				dc.FillRect(TempRect, &RimcasBrush);
-				dc.SetTextColor(RGB(238, 238, 208));
+					CRect TempRect = { CRectTime.left, CRectTime.top + TopOffset, CRectTime.right, CRectTime.top + TopOffset + TextHeight };
+					TempRect.NormalizeRect();
+
+					dc.FillRect(TempRect, &RimcasBrush);
+					dc.SetTextColor(RGB(238, 238, 208));
+				}
+
+				dc.TextOutA(CRectTime.left + 5, CRectTime.top + TopOffset, tempS.c_str());
+			}
+			else
+			{
+				tempS = std::to_string(Time) + ": ";
+				dc.TextOutA(CRectTime.left + 5, CRectTime.top + TopOffset, tempS.c_str());
 			}
 
-			dc.TextOutA(CRectTime.left, CRectTime.top + TopOffset, tempS.c_str());
-
-			TopOffset += TextHeight;
+			TopOffset += LineSpacing;
 		}
 
 		AddScreenObject(RIMCAS_IAW, it->first.c_str(), CRectTime, true, "");
@@ -2674,6 +2758,14 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		GetPlugIn()->AddPopupListElement("Low", "", RIMCAS_UPDATE_LVP, false, int(isLVP));
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		ShowLists["Visibility"] = false;
+	}
+
+	if (ShowLists["RIMCAS Detail"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["RIMCAS Detail"], "RIMCAS Detail", 1);
+		GetPlugIn()->AddPopupListElement("Detailed", "", RIMCAS_UPDATE_DETAILED, false, int(detailedRIMCAS));
+		GetPlugIn()->AddPopupListElement("Simple", "", RIMCAS_UPDATE_DETAILED, false, int(!detailedRIMCAS));
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["RIMCAS Detail"] = false;
 	}
 
 	if (ShowLists["Profiles"]) {

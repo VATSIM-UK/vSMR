@@ -105,6 +105,7 @@ public:
 	bool ColorSettingsDay = true;
 
 	bool isLVP = false;
+	bool detailedRIMCAS = true;
 
 	map<string, RECT> TimePopupAreas;
 
