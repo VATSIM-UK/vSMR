@@ -1,0 +1,21 @@
+TabWidth: 4
+IndentWidth: 4
+UseTab: Never
+
+Language: Cpp
+PointerAlignment: Middle
+AccessModifierOffset: 0
+AlignAfterOpenBracket: true
+AlignConsecutiveAssignments: true
+AlignEscapedNewlinesLeft: true
+AlignOperands: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+BinPackParameters: false
+BreakBeforeBraces: Allman
+ColumnLimit: 80
+MaxEmptyLinesToKeep: 1
