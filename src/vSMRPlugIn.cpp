@@ -77,3 +77,33 @@ bool vSMRPlugIn::OnCompileCommand(const char * sCommandLine)
 
     return false;
 }
+
+void vSMRPlugIn::OnTimer(int counter)
+{
+    // TODO: Implement timer functionality
+}
+
+void vSMRPlugIn::OnFlightPlanDisconnect(EuroScopePlugIn::CFlightPlan flightPlan)
+{
+    // TODO: Implement flight plan disconnect handling
+}
+
+void vSMRPlugIn::OnGetTagItem(EuroScopePlugIn::CFlightPlan flightPlan,
+                              EuroScopePlugIn::CRadarTarget radarTarget,
+                              int itemCode,
+                              int tagData,
+                              char itemString[16],
+                              int * colourCode,
+                              COLORREF * pRGB,
+                              double * fontSize)
+{
+    // TODO: Implement tag item handling
+}
+
+void vSMRPlugIn::OnFunctionCall(int functionId,
+                                const char * itemString,
+                                POINT pt,
+                                RECT area)
+{
+    // TODO: Implement function call handling
+}
