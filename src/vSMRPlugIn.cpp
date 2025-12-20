@@ -1,20 +1,15 @@
-#include "vSMRPlugIn.hpp"
 #include "Version.h"
+#include "vSMRPlugIn.hpp"
 #include "Identifiers.hpp"
 #include "Logger.hpp"
 
+#include "stringUtils.hpp"
+
 #include <windows.h>
 
-#include <cstring>
 #include <filesystem>
 
-static bool startsWith(const char *prefix, const char *str)
-{ // @TODO remove to a utils file/class??
-    if (!prefix || !str)
-        return false;
-    const size_t n = std::strlen(prefix);
-    return std::strncmp(str, prefix, n) == 0;
-}
+
 
 std::filesystem::path getDllPath()
 {

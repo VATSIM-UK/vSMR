@@ -40,7 +40,7 @@ add_subdirectory(src/Display)
 #add_subdirectory(src/ACARS)
 #add_subdirectory(src/RIMCAS)
 #add_subdirectory(src/Tags)
-#add_subdirectory(src/Utils)
+add_subdirectory(src/Utils)
 
 # ==============================================================================
 # Main Plugin Target
@@ -94,7 +94,7 @@ target_link_libraries(vSMR
         #vSMR_ACARS
         #vSMR_RIMCAS
         #vSMR_Tags
-        #vSMR_Utils
+        vSMR_Utils
         ${CMAKE_SOURCE_DIR}/euroscope/lib/EuroScopePlugInDLL.lib
         crypt32
         ws2_32
