@@ -1,4 +1,5 @@
-echo Conan install
+@echo off
+
 conan build . --profile=profiles/win32-msvc --build=missing || ( echo Conan failed & exit /b 1 )
 
 
