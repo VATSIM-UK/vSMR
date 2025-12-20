@@ -36,7 +36,7 @@ target_include_directories(euroscope_interface INTERFACE
 # Module Libraries
 # ==============================================================================
 add_subdirectory(src/Logger)
-add_subdirectory(src/Display)
+add_subdirectory(src/Radar)
 #add_subdirectory(src/ACARS)
 #add_subdirectory(src/RIMCAS)
 #add_subdirectory(src/Tags)
@@ -90,7 +90,7 @@ target_link_libraries(vSMR
         euroscope_interface
         rapidjson
         vSMR_Logger
-        vSMR_Display
+        vSMR_Radar
         #vSMR_ACARS
         #vSMR_RIMCAS
         #vSMR_Tags

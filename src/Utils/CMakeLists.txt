@@ -1,4 +1,3 @@
-# Display Module
 add_library(vSMR_Utils STATIC
     stringUtils.cpp
     pathUtils.cpp

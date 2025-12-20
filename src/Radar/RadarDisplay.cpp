@@ -2,10 +2,8 @@
 
 RadarDisplay::RadarDisplay()
 {
-
 }
 
 RadarDisplay::~RadarDisplay()
 {
-    
 }
