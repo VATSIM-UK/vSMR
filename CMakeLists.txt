@@ -8,31 +8,6 @@ SET(CMAKE_CXX_EXTENSIONS OFF)
 SET(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(ENABLE_CLANG_TIDY "Run clang-tidy static analysis during the build" ON)
-if(ENABLE_CLANG_TIDY)
-    find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
-    if(CLANG_TIDY_EXE)
-        set(CMAKE_CXX_CLANG_TIDY
-            "${CLANG_TIDY_EXE};-checks=-*,modernize-*;--header-filter=^${CMAKE_SOURCE_DIR}/(inc|src)/")
-    endif()
-endif()
-
-IF (MSVC)
-    IF (CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
-        STRING(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    ELSE ()
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
-    ENDIF ()
-    IF (NOT CMAKE_CXX_FLAGS MATCHES "/MP")
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-        SET(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /MP")
-    ENDIF ()
-
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /sdl /permissive- /DNOMINMAX")
-    SET(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /sdl /permissive- /DNOMINMAX")
-    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /MANIFESTUAC:NO /ignore:4099")
-    ADD_DEFINITIONS(/D_USRDLL)
-ENDIF ()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     ADD_DEFINITIONS(-DDEBUG_BUILD=1)
@@ -68,7 +43,6 @@ SET(SOURCE_FILES
     src/main.cpp
     src/RadarDisplay.cpp
     src/Logger.cpp
-    src/DisplayProfileManager.cpp
 )
 
 ADD_LIBRARY(vSMR SHARED ${SOURCE_FILES})
