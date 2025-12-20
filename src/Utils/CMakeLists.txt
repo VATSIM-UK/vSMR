@@ -1,6 +1,7 @@
 # Display Module
 add_library(vSMR_Utils STATIC
     stringUtils.cpp
+    pathUtils.cpp
 )
 
 target_include_directories(vSMR_Utils
