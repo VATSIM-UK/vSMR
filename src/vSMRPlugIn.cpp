@@ -36,6 +36,11 @@ vSMRPlugIn::vSMRPlugIn()
 
 vSMRPlugIn::~vSMRPlugIn() = default;
 
+void vSMRPlugIn::DisplayMessage(const std::string &message,
+                                const std::string &sender) {
+  DisplayUserMessage(PLUGIN_NAME, sender.c_str(), message.c_str(), true, false,
+                     false, false, false);
+}
 EuroScopePlugIn::CRadarScreen *
 vSMRPlugIn::OnRadarScreenCreated(const char *displayName, bool needRadarContent,
                                  bool geoReferenced, bool canBeSaved,
@@ -45,12 +50,6 @@ vSMRPlugIn::OnRadarScreenCreated(const char *displayName, bool needRadarContent,
     Logger::getInstance().info("Created display: " + std::string(displayName));
     // Create new Radar Screen here
   }
-}
-
-void vSMRPlugIn::DisplayMessage(const std::string &message,
-                                const std::string &sender) {
-  DisplayUserMessage(PLUGIN_NAME, sender.c_str(), message.c_str(), true, false,
-                     false, false, false);
 }
 
 bool vSMRPlugIn::OnCompileCommand(const char *sCommandLine) {
