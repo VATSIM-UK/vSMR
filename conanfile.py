@@ -1,8 +1,6 @@
 from conan import ConanFile
 from conan.tools.cmake import CMake, cmake_layout
 from conan.tools.cmake import CMakeToolchain
-from conan.tools.files import copy
-import os
 
 
 class vSMR(ConanFile):
@@ -22,15 +20,10 @@ class vSMR(ConanFile):
     def generate(self):
         toolchain = CMakeToolchain(self)
         toolchain.variables["CMAKE_EXPORT_COMPILE_COMMANDS"] = "ON"
+        toolchain.generator = "Ninja"
         toolchain.generate()
 
     def build(self):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
-
-        compile_commands = os.path.join(
-            self.build_folder, "compile_commands.json")
-        if os.path.exists(compile_commands):
-            copy(self, "compile_commands.json",
-                 src=self.build_folder, dst=self.source_folder)
