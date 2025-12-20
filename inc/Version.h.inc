@@ -5,5 +5,5 @@ namespace {
     inline constexpr const char* PLUGIN_VERSION = "dev";
     inline constexpr const char* PLUGIN_DEVELOPERS = "VATSIM UK";
     inline constexpr const char* PLUGIN_COPYRIGHT = "GPL v3";
-    inline constexpr const char* PLUGIN_VIEW_AVISO = "SMR radar display";
+    inline constexpr const char* PLUGIN_DISPLAY_NAME = "SMR radar display";
 }

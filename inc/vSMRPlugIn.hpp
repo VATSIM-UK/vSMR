@@ -6,21 +6,16 @@
 
 #include <string>
 
-class vSMRPlugIn : public EuroScopePlugIn::CPlugIn
-{
+class vSMRPlugIn : public EuroScopePlugIn::CPlugIn {
 public:
-    vSMRPlugIn();
-    ~vSMRPlugIn();
+  vSMRPlugIn();
+  ~vSMRPlugIn();
 
-    void DisplayMessage(
-        const std::string &message,
-        const std::string &sender = "vSMRPlugIn"
-    );
+  void DisplayMessage(const std::string &message,
+                      const std::string &sender = "vSMRPlugIn");
 
-    bool OnCompileCommand(const char * sComandLine);
-
-
-private:
-       
-            
+  bool OnCompileCommand(const char *sComandLine);
+  EuroScopePlugIn::CRadarScreen *
+  OnRadarScreenCreated(const char *displayName, bool needRadarContent,
+                       bool geoReferenced, bool canBeSaved, bool canBeCreated);
 };
