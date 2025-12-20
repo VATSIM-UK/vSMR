@@ -5,8 +5,6 @@
 #pragma warning(pop)
 
 #include <string>
-#include <filesystem>
-
 
 class vSMRPlugIn : public EuroScopePlugIn::CPlugIn
 {
