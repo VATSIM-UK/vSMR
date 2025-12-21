@@ -61,8 +61,13 @@ vSMRPlugIn::OnRadarScreenCreated(const char * displayName,
     {
         Logger::getInstance().info("Created display: " +
                                    std::string(displayName));
-        // Create new Radar Screen here
+        // Create new Radar Screen and add to vector
+        auto radarScreen = std::make_unique<RadarDisplay>();
+        auto * screenPtr = radarScreen.get();
+        radarScreens.push_back(std::move(radarScreen));
+        return screenPtr;
     }
+    return nullptr;
 }
 
 bool vSMRPlugIn::OnCompileCommand(const char * sCommandLine)

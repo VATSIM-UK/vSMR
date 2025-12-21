@@ -6,7 +6,7 @@ conan build . --profile=profiles/win32-msvc --build=missing || ( echo Conan fail
 if "%1"=="-c" (
     echo Copying DLL to EuroScope plugin folder...
     if not exist "%APPDATA%\EuroScope\UK\Data\Plugin\vSMR" mkdir "%APPDATA%\EuroScope\UK\Data\Plugin\vSMR"
-    copy /Y build\Release\vSMR.dll "%APPDATA%\EuroScope\UK\Data\Plugin\vSMR" >nul
+    copy /Y build\bin\vSMR.dll "%APPDATA%\EuroScope\UK\Data\Plugin\vSMR"
 )
 
 echo Done.

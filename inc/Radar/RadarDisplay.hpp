@@ -5,8 +5,8 @@
 class RadarDisplay : public EuroScopePlugIn::CRadarScreen
 {
     public:
-        RadarDisplay();
-        virtual ~RadarDisplay();
+    RadarDisplay();
+    virtual ~RadarDisplay();
 
-        
+    virtual void OnAsrContentToBeClosed();
 };
