@@ -1,9 +1,15 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <string>
+#include <vector>
 #include <windows.h>
+
+#pragma warning(push, 0)
+#include <EuroScopePlugIn.h>
+#pragma warning(pop)
 
 struct AircraftData
 {
@@ -49,8 +55,90 @@ class AircraftRenderer
                       double heading,
                       double pixelsPerMeter);
 
+    /**
+     * Generate aircraft outline polygon based on dimensions and heading
+     * @param aircraftPos Aircraft position
+     * @param heading Aircraft heading in degrees
+     * @param wingspan Wingspan in meters
+     * @param length Fuselage length in meters
+     * @param gearWidth Landing gear width in meters
+     * @return Vector of positions forming the aircraft outline
+     */
+    std::vector<EuroScopePlugIn::CPosition>
+    GenerateAircraftOutline(const EuroScopePlugIn::CPosition & aircraftPos,
+                            double heading,
+                            double wingspan,
+                            double length,
+                            double gearWidth) const;
+
+    /**
+     * Draw a complete aircraft shape with outline and correlation symbol
+     * @param hDC Device context
+     * @param aircraftPos Aircraft position in lat/lon
+     * @param heading Aircraft heading in degrees
+     * @param wingspan Wingspan in meters
+     * @param length Length in meters
+     * @param gearWidth Gear width in meters
+     * @param radarTarget Radar target for correlation info
+     * @param coordConverter Function to convert CPosition to screen POINT
+     */
+    void
+    DrawAircraftShape(HDC hDC,
+                      const EuroScopePlugIn::CPosition & aircraftPos,
+                      double heading,
+                      double wingspan,
+                      double length,
+                      double gearWidth,
+                      const EuroScopePlugIn::CRadarTarget & radarTarget,
+                      std::function<POINT(const EuroScopePlugIn::CPosition &)>
+                          coordConverter);
+
+    /**
+     * Draw correlation symbol at aircraft center
+     * @param hDC Device context
+     * @param centerPos Screen position of aircraft center
+     * @param radarTarget Radar target for transponder info
+     */
+    void
+    DrawCorrelationSymbol(HDC hDC,
+                          const POINT & centerPos,
+                          const EuroScopePlugIn::CRadarTarget & radarTarget);
+
+    /**
+     * Update aircraft shape data with position and dimensions
+     * @param callsign Aircraft callsign
+     * @param position Aircraft position
+     * @param heading Aircraft heading in degrees
+     * @param aircraftType ICAO aircraft type code
+     * @param wtc Wake turbulence category
+     */
+    void UpdateAircraftShape(const std::string & callsign,
+                             const EuroScopePlugIn::CPosition & position,
+                             double heading,
+                             const std::string & aircraftType,
+                             char wtc);
+
     private:
     std::map<std::string, AircraftData> aircraftDatabase;
+
+    // Structure to hold 2D points for aircraft shape
+    struct Point2D
+    {
+        double x;
+        double y;
+    };
+
+    // Structure to hold aircraft outline points with history
+    struct AircraftShapeData
+    {
+        std::map<int, Point2D> points;
+        std::map<int, Point2D> historyOne;
+        std::map<int, Point2D> historyTwo;
+        std::map<int, Point2D> historyThree;
+    };
+
+    // Map of callsigns to aircraft shape data
+    std::map<std::string, AircraftShapeData> aircraftShapes;
 
     /**
      * Parse a single line from the CSV file
