@@ -6,6 +6,53 @@
 #include <fstream>
 #include <sstream>
 
+namespace
+{
+// Unit conversion
+constexpr double FEET_TO_METERS = 0.3048;
+
+// Default aircraft dimensions (meters)
+constexpr double DEFAULT_WINGSPAN    = 34.0;
+constexpr double DEFAULT_CABIN_WIDTH = 4.0;
+constexpr double DEFAULT_LENGTH      = 38.0;
+
+// Heavy (H) wake turbulence category dimensions (meters)
+constexpr double HEAVY_WINGSPAN    = 61.0;
+constexpr double HEAVY_LENGTH      = 64.0;
+constexpr double HEAVY_CABIN_WIDTH = 14.0;
+
+// Super (J) wake turbulence category dimensions (meters)
+constexpr double SUPER_WINGSPAN    = 80.0;
+constexpr double SUPER_LENGTH      = 73.0;
+constexpr double SUPER_CABIN_WIDTH = 14.0;
+
+// Random variation ranges
+constexpr int WINGSPAN_VARIATION_RANGE     = 5;
+constexpr int WINGSPAN_VARIATION_OFFSET    = 2;
+constexpr int CABIN_WIDTH_VARIATION_RANGE  = 3;
+constexpr int CABIN_WIDTH_VARIATION_OFFSET = 1;
+constexpr int LENGTH_VARIATION_RANGE       = 5;
+constexpr int LENGTH_VARIATION_OFFSET      = 2;
+
+// Aircraft shape geometry factors
+constexpr double WING_LENGTH_FACTOR       = 0.8;
+constexpr double WING_WIDTH_FACTOR        = 0.7;
+constexpr double WING_SWEEP_ANGLE_FORWARD = 25.0;
+constexpr double WING_SWEEP_ANGLE_BACK    = 15.0;
+constexpr double FUSELAGE_TO_GEAR_RATIO   = 4.0;
+
+// Interpolation
+constexpr int INTERPOLATION_POINTS = 6;
+
+// Afterglow colors (RGB)
+constexpr COLORREF AFTERGLOW_COLOR_1 = RGB(0, 255, 255); // Brightest
+constexpr COLORREF AFTERGLOW_COLOR_2 = RGB(0, 219, 219);
+constexpr COLORREF AFTERGLOW_COLOR_3 = RGB(0, 183, 183); // Dimmest
+
+// Aircraft display color
+constexpr COLORREF AIRCRAFT_COLOR = RGB(255, 255, 0); // Yellow
+} // namespace
+
 AircraftRenderer::AircraftRenderer()
 {
 }
@@ -57,17 +104,17 @@ AircraftData AircraftRenderer::ParseCsvLine(const std::string & line)
     // Parse wingspan (in feet, convert to meters)
     if (!std::getline(ss, token, ','))
         throw std::runtime_error("Missing wingspan");
-    data.wingspan = std::stod(stringUtils::trimString(token)) * 0.3048;
+    data.wingspan = std::stod(stringUtils::trimString(token)) * FEET_TO_METERS;
 
     // Parse length (in feet, convert to meters)
     if (!std::getline(ss, token, ','))
         throw std::runtime_error("Missing length");
-    data.length = std::stod(stringUtils::trimString(token)) * 0.3048;
+    data.length = std::stod(stringUtils::trimString(token)) * FEET_TO_METERS;
 
     // Parse gear width (in feet, convert to meters)
     if (!std::getline(ss, token, ','))
         throw std::runtime_error("Missing gear width");
-    data.gearWidth = std::stod(stringUtils::trimString(token)) * 0.3048;
+    data.gearWidth = std::stod(stringUtils::trimString(token)) * FEET_TO_METERS;
 
     return data;
 }
@@ -166,9 +213,10 @@ AircraftRenderer::GenerateAircraftOutline(
     double rightHead   = fmod(trackHead + 90.0, 360.0);
 
     // Half dimensions
-    double halfLength     = length / 2.0;
-    double halfCabinWidth = gearWidth / 4.0; // Fuselage narrower than gear
-    double halfWingspan   = wingspan / 2.0;
+    double halfLength = length / 2.0;
+    double halfCabinWidth =
+        gearWidth / FUSELAGE_TO_GEAR_RATIO; // Fuselage narrower than gear
+    double halfWingspan = wingspan / 2.0;
 
     // Build 12 base points forming aircraft outline
     EuroScopePlugIn::CPosition topMiddle =
@@ -187,19 +235,23 @@ AircraftRenderer::GenerateAircraftOutline(
 
     // Wing points
     EuroScopePlugIn::CPosition wingLeftFront = angleUtils::haversine(
-        topLeft, fmod(inverseHead + 25.0, 360.0), 0.8 * halfLength);
+        topLeft, fmod(inverseHead + WING_SWEEP_ANGLE_FORWARD, 360.0),
+        WING_LENGTH_FACTOR * halfLength);
     EuroScopePlugIn::CPosition wingRightFront = angleUtils::haversine(
-        topRight, fmod(inverseHead - 25.0, 360.0), 0.8 * halfLength);
+        topRight, fmod(inverseHead - WING_SWEEP_ANGLE_FORWARD, 360.0),
+        WING_LENGTH_FACTOR * halfLength);
     EuroScopePlugIn::CPosition wingLeftBack = angleUtils::haversine(
-        bottomLeft, fmod(trackHead - 15.0, 360.0), 0.8 * halfLength);
+        bottomLeft, fmod(trackHead - WING_SWEEP_ANGLE_BACK, 360.0),
+        WING_LENGTH_FACTOR * halfLength);
     EuroScopePlugIn::CPosition wingRightBack = angleUtils::haversine(
-        bottomRight, fmod(trackHead + 15.0, 360.0), 0.8 * halfLength);
+        bottomRight, fmod(trackHead + WING_SWEEP_ANGLE_BACK, 360.0),
+        WING_LENGTH_FACTOR * halfLength);
 
     // Wing tips
-    EuroScopePlugIn::CPosition leftWingTip =
-        angleUtils::haversine(wingLeftBack, leftHead, 0.7 * halfWingspan);
-    EuroScopePlugIn::CPosition rightWingTip =
-        angleUtils::haversine(wingRightBack, rightHead, 0.7 * halfWingspan);
+    EuroScopePlugIn::CPosition leftWingTip = angleUtils::haversine(
+        wingLeftBack, leftHead, WING_WIDTH_FACTOR * halfWingspan);
+    EuroScopePlugIn::CPosition rightWingTip = angleUtils::haversine(
+        wingRightBack, rightHead, WING_WIDTH_FACTOR * halfWingspan);
 
     // Base outline points in order
     EuroScopePlugIn::CPosition basePoints[12] = {
@@ -225,9 +277,10 @@ AircraftRenderer::GenerateAircraftOutline(
         outline.push_back(startPoint);
 
         // Linear interpolation between points
-        for (int k = 1; k < 6; ++k)
+        for (int k = 1; k < INTERPOLATION_POINTS; ++k)
         {
-            double ratio = k / 6.0;
+            double ratio = static_cast<double>(k) /
+                static_cast<double>(INTERPOLATION_POINTS);
             EuroScopePlugIn::CPosition midPoint;
             midPoint.m_Latitude = startPoint.m_Latitude +
                 ratio * (endPoint.m_Latitude - startPoint.m_Latitude);
@@ -265,8 +318,8 @@ void AircraftRenderer::DrawAircraftShape(
     // Draw aircraft outline
     if (!screenPoints.empty())
     {
-        HBRUSH yellowBrush = CreateSolidBrush(RGB(255, 255, 0));
-        HPEN yellowPen     = CreatePen(PS_SOLID, 1, RGB(255, 255, 0));
+        HBRUSH yellowBrush = CreateSolidBrush(AIRCRAFT_COLOR);
+        HPEN yellowPen     = CreatePen(PS_SOLID, 1, AIRCRAFT_COLOR);
 
         HBRUSH oldBrush = (HBRUSH)SelectObject(hDC, yellowBrush);
         HPEN oldPen     = (HPEN)SelectObject(hDC, yellowPen);
@@ -332,9 +385,9 @@ void AircraftRenderer::DrawAircraftAfterGlow(
 
     // Define afterglow colors (from brightest to dimmest)
     COLORREF colors[3] = {
-        RGB(0, 255, 255), // Cyan (most recent history)
-        RGB(0, 219, 219), // Slightly dimmer
-        RGB(0, 183, 183)  // Dimmest
+        AFTERGLOW_COLOR_1, // Cyan (most recent history)
+        AFTERGLOW_COLOR_2, // Slightly dimmer
+        AFTERGLOW_COLOR_3  // Dimmest
     };
 
     // Draw three levels of history
@@ -395,9 +448,9 @@ void AircraftRenderer::UpdateAircraftShape(
     aircraftShapes[callsign].points.clear();
 
     // Default dimensions (in meters)
-    double width      = 34.0;
-    double cabinWidth = 4.0;
-    double length     = 38.0;
+    double width      = DEFAULT_WINGSPAN;
+    double cabinWidth = DEFAULT_CABIN_WIDTH;
+    double length     = DEFAULT_LENGTH;
 
     // Get aircraft dimensions from database
     const AircraftData * data = GetAircraftData(aircraftType);
@@ -413,22 +466,25 @@ void AircraftRenderer::UpdateAircraftShape(
         // Fallback to WTC category
         if (wtc == 'H')
         {
-            width      = 61.0;
-            length     = 64.0;
-            cabinWidth = 14.0;
+            width      = HEAVY_WINGSPAN;
+            length     = HEAVY_LENGTH;
+            cabinWidth = HEAVY_CABIN_WIDTH;
         }
         else if (wtc == 'J')
         {
-            width      = 80.0;
-            length     = 73.0;
-            cabinWidth = 14.0;
+            width      = SUPER_WINGSPAN;
+            length     = SUPER_LENGTH;
+            cabinWidth = SUPER_CABIN_WIDTH;
         }
     }
 
     // Add small random variation
-    width += static_cast<double>((rand() % 5) - 2);
-    cabinWidth += static_cast<double>((rand() % 3) - 1);
-    length += static_cast<double>((rand() % 5) - 2);
+    width += static_cast<double>((rand() % WINGSPAN_VARIATION_RANGE) -
+                                 WINGSPAN_VARIATION_OFFSET);
+    cabinWidth += static_cast<double>((rand() % CABIN_WIDTH_VARIATION_RANGE) -
+                                      CABIN_WIDTH_VARIATION_OFFSET);
+    length += static_cast<double>((rand() % LENGTH_VARIATION_RANGE) -
+                                  LENGTH_VARIATION_OFFSET);
 
     // Calculate heading vectors
     double trackHead        = heading;
@@ -437,7 +493,7 @@ void AircraftRenderer::UpdateAircraftShape(
     double rightTrackHead   = fmod(trackHead + 90.0, 360.0);
 
     double halfLength    = length / 2.0;
-    double halfCabWidth  = cabinWidth / 2.0;
+    double halfCabWidth  = cabinWidth / FUSELAGE_TO_GEAR_RATIO;
     double halfSpanWidth = width / 2.0;
 
     // Build aircraft shape using haversine calculations
@@ -457,21 +513,25 @@ void AircraftRenderer::UpdateAircraftShape(
         angleUtils::haversine(bottomMiddle, rightTrackHead, halfCabWidth);
 
     EuroScopePlugIn::CPosition middleTopLeft = angleUtils::haversine(
-        topLeft, fmod(inverseTrackHead + 25.0, 360.0), 0.8 * halfLength);
+        topLeft, fmod(inverseTrackHead + WING_SWEEP_ANGLE_FORWARD, 360.0),
+        WING_LENGTH_FACTOR * halfLength);
     EuroScopePlugIn::CPosition middleTopRight = angleUtils::haversine(
-        topRight, fmod(inverseTrackHead - 25.0, 360.0), 0.8 * halfLength);
+        topRight, fmod(inverseTrackHead - WING_SWEEP_ANGLE_FORWARD, 360.0),
+        WING_LENGTH_FACTOR * halfLength);
     EuroScopePlugIn::CPosition middleBottomLeft = angleUtils::haversine(
-        bottomLeft, fmod(trackHead - 15.0, 360.0), 0.8 * halfLength);
+        bottomLeft, fmod(trackHead - WING_SWEEP_ANGLE_BACK, 360.0),
+        WING_LENGTH_FACTOR * halfLength);
     EuroScopePlugIn::CPosition middleBottomRight = angleUtils::haversine(
-        bottomRight, fmod(trackHead + 15.0, 360.0), 0.8 * halfLength);
+        bottomRight, fmod(trackHead + WING_SWEEP_ANGLE_BACK, 360.0),
+        WING_LENGTH_FACTOR * halfLength);
 
     EuroScopePlugIn::CPosition rightTop = angleUtils::haversine(
-        middleBottomRight, rightTrackHead, 0.7 * halfSpanWidth);
+        middleBottomRight, rightTrackHead, WING_WIDTH_FACTOR * halfSpanWidth);
     EuroScopePlugIn::CPosition rightBottom =
         angleUtils::haversine(rightTop, inverseTrackHead, cabinWidth);
 
     EuroScopePlugIn::CPosition leftTop = angleUtils::haversine(
-        middleBottomLeft, leftTrackHead, 0.7 * halfSpanWidth);
+        middleBottomLeft, leftTrackHead, WING_WIDTH_FACTOR * halfSpanWidth);
     EuroScopePlugIn::CPosition leftBottom =
         angleUtils::haversine(leftTop, inverseTrackHead, cabinWidth);
 
@@ -495,9 +555,10 @@ void AircraftRenderer::UpdateAircraftShape(
         aircraftShapes[callsign].points[baseIndex] = point;
 
         // Interpolate intermediate points
-        for (int k = 1; k < 6; k++)
+        for (int k = 1; k < INTERPOLATION_POINTS; k++)
         {
-            double ratio = static_cast<double>(k) / 6.0;
+            double ratio = static_cast<double>(k) /
+                static_cast<double>(INTERPOLATION_POINTS);
             Point2D midPoint;
             midPoint.y = startPoint.m_Latitude +
                 ratio * (endPoint.m_Latitude - startPoint.m_Latitude);
