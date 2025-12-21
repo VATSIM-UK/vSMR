@@ -54,20 +54,20 @@ AircraftData AircraftRenderer::ParseCsvLine(const std::string & line)
         throw std::runtime_error("Missing ICAO code");
     data.icao = stringUtils::trimString(token);
 
-    // Parse wingspan
+    // Parse wingspan (in feet, convert to meters)
     if (!std::getline(ss, token, ','))
         throw std::runtime_error("Missing wingspan");
-    data.wingspan = std::stod(stringUtils::trimString(token));
+    data.wingspan = std::stod(stringUtils::trimString(token)) * 0.3048;
 
-    // Parse length
+    // Parse length (in feet, convert to meters)
     if (!std::getline(ss, token, ','))
         throw std::runtime_error("Missing length");
-    data.length = std::stod(stringUtils::trimString(token));
+    data.length = std::stod(stringUtils::trimString(token)) * 0.3048;
 
-    // Parse height
+    // Parse gear width (in feet, convert to meters)
     if (!std::getline(ss, token, ','))
         throw std::runtime_error("Missing gear width");
-    data.gearWidth = std::stod(stringUtils::trimString(token));
+    data.gearWidth = std::stod(stringUtils::trimString(token)) * 0.3048;
 
     return data;
 }
