@@ -46,3 +46,5 @@
 # Project Specific
 build
 CMakeUserPresets.json
+
+_ref/
