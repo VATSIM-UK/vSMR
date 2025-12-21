@@ -1,4 +1,7 @@
 #include "RadarDisplay.hpp"
+#pragma warning(push, 0)
+#include "EuroScopePlugIn.h"
+#pragma warning(pop)
 #include "Logger.hpp"
 #include "pathUtils.hpp"
 
@@ -54,5 +57,14 @@ void RadarDisplay::OnRefresh(HDC hDC, int phase)
         }
 
         flightPlan = GetPlugIn()->FlightPlanSelectNext(flightPlan);
+    }
+}
+
+void RadarDisplay::OnRadarTargetPositionUpdate(
+    EuroScopePlugIn::CRadarTarget radarTarget)
+{
+    if (!radarTarget.IsValid() || !radarTarget.GetPosition().IsValid())
+    {
+        return;
     }
 }

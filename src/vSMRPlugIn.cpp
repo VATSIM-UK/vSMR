@@ -1,5 +1,7 @@
 #include "vSMRPlugIn.hpp"
+#pragma warning(push, 0)
 #include "EuroScopePlugIn.h"
+#pragma warning(pop)
 #include "Logger.hpp"
 #include "RadarDisplay.hpp"
 #include "Version.h"

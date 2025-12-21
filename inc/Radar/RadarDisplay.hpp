@@ -1,7 +1,9 @@
 #pragma once
 
-#include <EuroScopePlugIn.h>
 #include "AircraftRenderer.hpp"
+#pragma warning(push, 0)
+#include <EuroScopePlugIn.h>
+#pragma warning(pop)
 #include <memory>
 
 class RadarDisplay : public EuroScopePlugIn::CRadarScreen
@@ -12,6 +14,8 @@ class RadarDisplay : public EuroScopePlugIn::CRadarScreen
 
     virtual void OnAsrContentToBeClosed();
     virtual void OnRefresh(HDC hDC, int phase);
+    virtual void
+    OnRadarTargetPositionUpdate(EuroScopePlugIn::CRadarTarget radarTarget);
 
     private:
     std::unique_ptr<AircraftRenderer> aircraftRenderer;
