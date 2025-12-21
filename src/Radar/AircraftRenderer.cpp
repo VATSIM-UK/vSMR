@@ -280,10 +280,6 @@ void AircraftRenderer::DrawAircraftShape(
         DeleteObject(yellowBrush);
         DeleteObject(yellowPen);
     }
-
-    // Draw center correlation symbol
-    POINT centerPx = coordConverter(aircraftPos);
-    DrawCorrelationSymbol(hDC, centerPx, radarTarget);
 }
 
 void AircraftRenderer::DrawCorrelationSymbol(
