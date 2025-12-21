@@ -14,7 +14,7 @@ RadarDisplay::RadarDisplay()
 {
     // Load aircraft data
     std::filesystem::path dataPath =
-        pathUtils::getDllPath() / "data" / "aircraft-data.csv";
+        pathUtils::getDllPath() / "aircraft-data.csv";
     if (!aircraftRenderer->LoadAircraftData(dataPath))
     {
         Logger::getInstance().warning("Failed to load aircraft data from: " +
