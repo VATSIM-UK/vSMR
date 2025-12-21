@@ -1,5 +1,6 @@
 add_library(vSMR_Radar STATIC
     RadarDisplay.cpp
+    AircraftRenderer.cpp
 )
 
 target_include_directories(vSMR_Radar
@@ -12,4 +13,6 @@ target_include_directories(vSMR_Radar
 target_link_libraries(vSMR_Radar
     PUBLIC
         euroscope_interface
+        vSMR_Logger
+        vSMR_Utils
 )
