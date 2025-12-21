@@ -1,6 +1,5 @@
 #include "vSMRPlugIn.hpp"
 #include "EuroScopePlugIn.h"
-#include "Identifiers.hpp"
 #include "Logger.hpp"
 #include "RadarDisplay.hpp"
 #include "Version.h"
@@ -21,7 +20,7 @@ vSMRPlugIn::vSMRPlugIn()
 
     try
     {
-        auto logPath = getDllPath() / "vSMR.log";
+        auto logPath = pathUtils::getDllPath() / "vSMR.log";
         Logger::initialise(logPath);
         Logger::getInstance().info("vSMR Plugin Initialised - Version " +
                                    std::string(PLUGIN_VERSION));
@@ -72,7 +71,7 @@ vSMRPlugIn::OnRadarScreenCreated(const char * displayName,
 
 bool vSMRPlugIn::OnCompileCommand(const char * sCommandLine)
 {
-    if (startsWith(".smr hello", sCommandLine))
+    if (stringUtils::startsWith(".smr hello", sCommandLine))
     {
         Logger::getInstance().info("Called Hello command");
         DisplayUserMessage("vSMR", "vSMR", "Hello!", true, true, false, true,
