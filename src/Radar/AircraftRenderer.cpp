@@ -323,6 +323,66 @@ void AircraftRenderer::DrawCorrelationSymbol(
     DeleteObject(symbolPen);
 }
 
+void AircraftRenderer::DrawAircraftAfterGlow(
+    HDC hDC,
+    const std::string & callsign,
+    std::function<POINT(const EuroScopePlugIn::CPosition &)> coordConverter)
+{
+    // Check if we have shape data for this aircraft
+    auto it = aircraftShapes.find(callsign);
+    if (it == aircraftShapes.end()) { return; }
+
+    const AircraftShapeData & shapeData = it->second;
+
+    // Define afterglow colors (from brightest to dimmest)
+    COLORREF colors[3] = {
+        RGB(0, 255, 255), // Cyan (most recent history)
+        RGB(0, 219, 219), // Slightly dimmer
+        RGB(0, 183, 183)  // Dimmest
+    };
+
+    // Draw three levels of history
+    const std::map<int, Point2D> * histories[3] = {
+        &shapeData.historyOne, &shapeData.historyTwo, &shapeData.historyThree};
+
+    for (int historyLevel = 0; historyLevel < 3; historyLevel++)
+    {
+        const std::map<int, Point2D> & historyPoints = *histories[historyLevel];
+
+        if (historyPoints.empty()) { continue; }
+
+        // Convert history points to screen coordinates
+        std::vector<POINT> screenPoints;
+        for (const auto & [index, point] : historyPoints)
+        {
+            EuroScopePlugIn::CPosition pos;
+            pos.m_Longitude = point.x;
+            pos.m_Latitude  = point.y;
+            POINT screenPos = coordConverter(pos);
+            screenPoints.push_back(screenPos);
+        }
+
+        // Draw the afterglow shape
+        if (!screenPoints.empty())
+        {
+            HBRUSH brush = CreateSolidBrush(colors[historyLevel]);
+            HPEN pen     = CreatePen(PS_SOLID, 1, colors[historyLevel]);
+
+            HBRUSH oldBrush = (HBRUSH)SelectObject(hDC, brush);
+            HPEN oldPen     = (HPEN)SelectObject(hDC, pen);
+
+            Polygon(hDC, screenPoints.data(),
+                    static_cast<int>(screenPoints.size()));
+
+            SelectObject(hDC, oldBrush);
+            SelectObject(hDC, oldPen);
+
+            DeleteObject(brush);
+            DeleteObject(pen);
+        }
+    }
+}
+
 void AircraftRenderer::UpdateAircraftShape(
     const std::string & callsign,
     const EuroScopePlugIn::CPosition & position,

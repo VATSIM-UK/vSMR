@@ -33,7 +33,10 @@ void RadarDisplay::OnAsrContentToBeClosed()
 
 void RadarDisplay::OnRefresh(HDC hDC, int phase)
 {
-    // Draw all aircraft
+    // Only draw aircraft in the correct phase (before tags/lists)
+    if (phase != EuroScopePlugIn::REFRESH_PHASE_BEFORE_TAGS) { return; }
+
+    // Draw all aircraft with afterglow
     EuroScopePlugIn::CFlightPlan flightPlan =
         GetPlugIn()->FlightPlanSelectFirst();
     while (flightPlan.IsValid())
@@ -43,6 +46,13 @@ void RadarDisplay::OnRefresh(HDC hDC, int phase)
 
         if (radarTarget.IsValid())
         {
+            std::string callsign = radarTarget.GetCallsign();
+
+            // Draw afterglow first (older positions)
+            aircraftRenderer->DrawAircraftAfterGlow(
+                hDC, callsign, [this](const EuroScopePlugIn::CPosition & pos)
+                { return ConvertCoordFromPositionToPixel(pos); });
+
             // Get radar target position and heading
             EuroScopePlugIn::CPosition radarPos =
                 radarTarget.GetPosition().GetPosition();

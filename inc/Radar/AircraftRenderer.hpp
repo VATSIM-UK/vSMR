@@ -105,6 +105,18 @@ class AircraftRenderer
                           const EuroScopePlugIn::CRadarTarget & radarTarget);
 
     /**
+     * Draw afterglow effect for an aircraft using history points
+     * @param hDC Device context
+     * @param callsign Aircraft callsign to draw afterglow for
+     * @param coordConverter Function to convert CPosition to screen POINT
+     */
+    void DrawAircraftAfterGlow(
+        HDC hDC,
+        const std::string & callsign,
+        std::function<POINT(const EuroScopePlugIn::CPosition &)>
+            coordConverter);
+
+    /**
      * Update aircraft shape data with position and dimensions
      * @param callsign Aircraft callsign
      * @param position Aircraft position
