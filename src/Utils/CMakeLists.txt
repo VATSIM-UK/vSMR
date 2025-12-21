@@ -1,4 +1,5 @@
 add_library(vSMR_Utils STATIC
+    angleUtils.cpp
     stringUtils.cpp
     pathUtils.cpp
 )
@@ -12,4 +13,6 @@ target_include_directories(vSMR_Utils
 
 target_link_libraries(vSMR_Utils
     PUBLIC
+        euroscope_interface
+
 )
