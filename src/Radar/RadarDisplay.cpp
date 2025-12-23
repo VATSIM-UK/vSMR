@@ -10,7 +10,8 @@
 #include <filesystem>
 
 RadarDisplay::RadarDisplay()
-    : aircraftRenderer(std::make_unique<AircraftRenderer>())
+    : aircraftRenderer(std::make_unique<AircraftRenderer>()),
+      menuBar(std::make_unique<MenuBar>())
 {
     // Load aircraft data
     std::filesystem::path dataPath =
@@ -33,6 +34,14 @@ void RadarDisplay::OnAsrContentToBeClosed()
 
 void RadarDisplay::OnRefresh(HDC hDC, int phase)
 {
+    // Draw menu bar in the correct phase (on top of everything)
+    if (phase == EuroScopePlugIn::REFRESH_PHASE_AFTER_LISTS)
+    {
+        RECT displayArea = GetRadarArea();
+        menuBar->Draw(hDC, displayArea);
+        return;
+    }
+
     // Only draw aircraft in the correct phase (before tags/lists)
     if (phase != EuroScopePlugIn::REFRESH_PHASE_BEFORE_TAGS) { return; }
 
@@ -133,4 +142,34 @@ void RadarDisplay::OnRadarTargetPositionUpdate(
     // Update aircraft shape in renderer with plain data
     aircraftRenderer->UpdateAircraftShape(callsign, position, heading,
                                           aircraftType, wtc);
+}
+
+void RadarDisplay::OnClickScreenObject(int objectType,
+                                       const char * objectId,
+                                       POINT pt,
+                                       RECT area,
+                                       int button)
+{
+    // Check if click is in menu bar
+    if (menuBar->IsPointInMenuBar(pt, area))
+    {
+        int menuIndex = menuBar->OnClick(pt, area);
+        if (menuIndex >= 0) { HandleMenuBarClick(menuIndex); }
+    }
+}
+
+void RadarDisplay::HandleMenuBarClick(int menuIndex)
+{
+    // Menu items: 0=Display, 1=Maps, 2=Windows, 3=Colours, 4=Target, 5=Radar,
+    // 6=RIMCAS, 7=AFDAS
+    const char * menuNames[] = {"Display", "Maps",  "Windows", "Colours",
+                                "Target",  "Radar", "RIMCAS",  "AFDAS"};
+
+    if (menuIndex >= 0 && menuIndex < 8)
+    {
+        // Log the click for now - later this will open the appropriate
+        // menu/dialog
+        Logger::getInstance().info("Menu clicked: " +
+                                   std::string(menuNames[menuIndex]));
+    }
 }
