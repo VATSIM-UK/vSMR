@@ -1,4 +1,6 @@
 #include "Rimcas.hpp"
+#include "stdafx.h"
+
 
 CRimcas::CRimcas() {}
 

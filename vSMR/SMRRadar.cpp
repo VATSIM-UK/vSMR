@@ -2,7 +2,6 @@
 #include "Resource.h"
 #include "stdafx.h"
 
-
 ULONG_PTR m_gdiplusToken;
 CPoint mouseLocation(0, 0);
 string TagBeingDragged;
@@ -2104,14 +2103,14 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       // closed runway
       //			if
       //(CurrentConfig->isCustomRunwayAvail(getActiveAirport(), runway_name,
-      //runway_name2)) { 	const Value& Runways = CustomMap["runways"];
+      // runway_name2)) { 	const Value& Runways = CustomMap["runways"];
       //
       //		if (Runways.IsArray()) {
       //		for (SizeType i = 0; i < Runways.Size(); i++) {
       //			if (startsWith(runway_name.c_str(),
-      //Runways[i]["runway_name"].GetString()) ||
+      // Runways[i]["runway_name"].GetString()) ||
       //				startsWith(runway_name2.c_str(),
-      //Runways[i]["runway_name"].GetString())) {
+      // Runways[i]["runway_name"].GetString())) {
       //
       //				string path_name = "path";
       //
@@ -2119,10 +2118,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       //					path_name = "path_lvp";
       //
       //				const Value& Path =
-      //Runways[i][path_name.c_str()]; 				for (SizeType j = 0; j < Path.Size();
-      //j++) { 					CPosition position;
+      // Runways[i][path_name.c_str()]; 				for
+      // (SizeType j = 0; j < Path.Size(); j++) {
+      // CPosition position;
       //					position.LoadFromStrings(Path[j][(SizeType)1].GetString(),
-      //Path[j][(SizeType)0].GetString());
+      // Path[j][(SizeType)0].GetString());
       //
       //					def.push_back(position);
       //				}
