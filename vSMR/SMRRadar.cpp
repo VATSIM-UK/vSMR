@@ -815,6 +815,9 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char *sObjectId,
                                getActiveAirport().c_str());
   }
 
+  // DEBUG: Log ALL clicks to see what's happening
+  Logger::info("OnClickScreenObject: ObjectType=" + std::to_string(ObjectType) + ", sObjectId='" + string(sObjectId) + "', RIMCAS_DEP_WINDOW_QSY=" + std::to_string(RIMCAS_DEP_WINDOW_QSY));
+
   // Handle click on QSY to dismiss the aircraft
   if (ObjectType == RIMCAS_DEP_WINDOW_QSY) {
     Logger::info("=== QSY CLICK ===");
