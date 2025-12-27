@@ -359,7 +359,15 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   if (isMoving && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
     DepartureInfo info;
     info.callsign = callsign;
+    if (info.callsign.length() > 8) {
+      info.callsign = info.callsign.substr(0, 8);
+    }
+    
     info.sid = fp.GetFlightPlanData().GetSidName();
+    if (info.sid.length() > 7) {
+      info.sid = info.sid.substr(0, 7);
+    }
+    
     info.acType = fp.GetFlightPlanData().GetAircraftFPType();
     if (info.acType.size() > 4) {
       info.acType = info.acType.substr(0, 4);
@@ -370,6 +378,9 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     info.airborneFreq = fp.GetControllerAssignedData().GetFlightStripAnnotation(8);
     if (info.airborneFreq.length() == 0) {
       info.airborneFreq = "QSY";
+    }
+    if (info.airborneFreq.length() > 7) {
+      info.airborneFreq = info.airborneFreq.substr(0, 7);
     }
 
     info.groundAltitude = Rt.GetPosition().GetPressureAltitude();

@@ -3151,13 +3151,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
     if (depWindowShowTime)
       numColumns++;
 
-    // Calculate column widths
-    int colCallsignWidth = dc.GetTextExtent("SPEEDBIRD123").cx;
-    int colDestWidth = dc.GetTextExtent("XXXX").cx;
-    int colAcTypeWidth = dc.GetTextExtent("A320").cx;
-    int colWakeWidth = dc.GetTextExtent("H").cx;
-    int colFreqWidth = dc.GetTextExtent("124.850").cx;
-    int colTimeWidth = dc.GetTextExtent("59:59").cx;
+    // Calculate column widths based on maximum character counts
+    int colCallsignWidth = dc.GetTextExtent("XXXXXXXX").cx; // 8 chars max
+    int colDestWidth = dc.GetTextExtent("XXXXXXX").cx;       // 7 chars max (SID)
+    int colAcTypeWidth = dc.GetTextExtent("XXXX").cx;        // 4 chars max
+    int colWakeWidth = dc.GetTextExtent("X").cx;             // 1 char max
+    int colFreqWidth = dc.GetTextExtent("XXXXXXX").cx;       // 7 chars max (QSY)
+    int colTimeWidth = dc.GetTextExtent("XX:XX").cx;         // 5 chars (MM:SS)
     int colPadding = 8;
 
     // Calculate total width based on enabled columns
