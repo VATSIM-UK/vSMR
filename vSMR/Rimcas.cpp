@@ -453,9 +453,13 @@ void CRimcas::UpdateDepartureTimer(int departureDisplayDurationSecs, CRadarScree
 
 void CRimcas::DismissDeparture(string callsign) {
 
+  Logger::info("DismissDeparture called for: " + callsign);
 
   if (DepartedAircraft.find(callsign) != DepartedAircraft.end()) {
     DepartedAircraft[callsign].dismissed = true;
+    Logger::info("DismissDeparture: Marked " + callsign + " as dismissed");
+  } else {
+    Logger::info("DismissDeparture: " + callsign + " not found in DepartedAircraft");
   }
 }
 

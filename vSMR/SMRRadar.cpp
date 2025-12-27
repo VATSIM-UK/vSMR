@@ -817,12 +817,14 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char *sObjectId,
 
   // Handle click on QSY to dismiss the aircraft
   if (ObjectType == RIMCAS_DEP_WINDOW_QSY) {
+    Logger::info("QSY clicked for " + string(sObjectId));
     RimcasInstance->DismissDeparture(sObjectId);
     RequestRefresh();
   }
 
   // Handle click on departure timer row - dismiss the aircraft
   if (ObjectType == RIMCAS_DEP_WINDOW_ROW) {
+    Logger::info("Row clicked for " + string(sObjectId));
     RimcasInstance->DismissDeparture(sObjectId);
     RequestRefresh();
   }
