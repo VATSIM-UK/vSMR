@@ -3266,9 +3266,16 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
 
       if (depWindowShowFreq) {
         CRect qsyRect = {rowX, rowY, rowX + colFreqWidth, rowY + TextHeight};
+        
+        // Draw box around QSY button
+        CPen ButtonPen(PS_SOLID, 1, RGB(100, 100, 100));
+        CPen *oldPen = dc.SelectObject(&ButtonPen);
+        dc.Rectangle(&qsyRect);
+        dc.SelectObject(oldPen);
+        
         // Right-justify the QSY text
         int textWidth = dc.GetTextExtent(info.airborneFreq.c_str()).cx;
-        int qsyX = rowX + colFreqWidth - textWidth;
+        int qsyX = rowX + colFreqWidth - textWidth - 2; // -2 for padding from edge
         dc.TextOutA(qsyX, rowY, info.airborneFreq.c_str());
         // Make QSY clickable to dismiss (added AFTER row so it's on top)
         AddScreenObject(RIMCAS_DEP_WINDOW_QSY, info.callsign.c_str(), qsyRect,
