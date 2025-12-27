@@ -397,9 +397,10 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     DepartureInfo &info = DepartedAircraft[callsign];
     if (!info.timerStarted && isAirborne) {
       int currentAltitude = Rt.GetPosition().GetPressureAltitude();
-      int verticalSpeed = Rt.GetPosition().GetVerticalSpeed();
-      // Only start timer if climbing (positive vertical speed > 100 fpm)
-      if (currentAltitude > info.groundAltitude && verticalSpeed > 100) {
+      int previousAltitude = Rt.GetPreviousPosition(Rt.GetPosition()).GetPressureAltitude();
+      int verticalSpeed = currentAltitude - previousAltitude;
+      // Only start timer if climbing (positive altitude change)
+      if (currentAltitude > info.groundAltitude && verticalSpeed > 0) {
         info.liftoffTime = clock();
         info.timerStarted = true;
       }
