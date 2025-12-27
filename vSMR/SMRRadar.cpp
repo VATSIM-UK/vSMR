@@ -3266,7 +3266,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
 
       if (depWindowShowFreq) {
         CRect qsyRect = {rowX, rowY, rowX + colFreqWidth, rowY + TextHeight};
-        dc.TextOutA(rowX, rowY, info.airborneFreq.c_str());
+        // Right-justify the QSY text
+        int textWidth = dc.GetTextExtent(info.airborneFreq.c_str()).cx;
+        int qsyX = rowX + colFreqWidth - textWidth;
+        dc.TextOutA(qsyX, rowY, info.airborneFreq.c_str());
         // Make QSY clickable to dismiss (added AFTER row so it's on top)
         AddScreenObject(RIMCAS_DEP_WINDOW_QSY, info.callsign.c_str(), qsyRect,
                         true, "Click to dismiss");
