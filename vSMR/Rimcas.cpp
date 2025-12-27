@@ -349,12 +349,13 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
 
   string origin = fp.GetFlightPlanData().GetOrigin();
   if (origin != activeAirport) {
-    Logger::info("TrackDeparture: " + callsign + " origin " + origin + " != activeAirport " + activeAirport);
     return;
   }
 
-  bool onRunway = isAcOnRunway(callsign);
-  Logger::info("TrackDeparture: " + callsign + " onRunway=" + (onRunway ? "true" : "false"));
+  // Check if aircraft is actually in a runway area (using same logic as GetAcInRunwayArea)
+  string runwayArea = GetAcInRunwayArea(Rt, instance);
+  bool onRunway = (runwayArea != string_false);
+  Logger::info("TrackDeparture: " + callsign + " onRunway=" + (onRunway ? "true" : "false") + " runway=" + runwayArea);
 
   if (onRunway && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
     DepartureInfo info;
