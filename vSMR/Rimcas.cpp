@@ -1,5 +1,5 @@
-#include "Rimcas.hpp"
 #include "stdafx.h"
+#include "Rimcas.hpp"
 
 CRimcas::CRimcas() {}
 
