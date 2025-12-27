@@ -3280,6 +3280,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
         int qsyX = rowX + colFreqWidth - textWidth - 2; // -2 for padding from edge
         dc.TextOutA(qsyX, rowY, info.airborneFreq.c_str());
         // Make QSY clickable to dismiss (added AFTER row so it's on top)
+        Logger::info("Adding QSY button for callsign: " + info.callsign);
         AddScreenObject(RIMCAS_DEP_WINDOW_QSY, info.callsign.c_str(), qsyRect,
                         true, "Click to dismiss");
         rowX += colFreqWidth + colPadding;
