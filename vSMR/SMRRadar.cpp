@@ -3342,7 +3342,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
     GetPlugIn()->AddPopupListElement("Show Callsign", "",
                                      RIMCAS_DEP_WINDOW_COL_CALLSIGN, false,
                                      int(depWindowShowCallsign));
-    GetPlugIn()->AddPopupListElement("Show Destination", "",
+    GetPlugIn()->AddPopupListElement("Show Departure", "",
                                      RIMCAS_DEP_WINDOW_COL_DEST, false,
                                      int(depWindowShowDest));
     GetPlugIn()->AddPopupListElement("Show AC Type", "",
