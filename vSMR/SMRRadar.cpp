@@ -815,6 +815,12 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char *sObjectId,
                                getActiveAirport().c_str());
   }
 
+  // Handle click on QSY to dismiss the aircraft
+  if (ObjectType == RIMCAS_DEP_WINDOW_QSY) {
+    RimcasInstance->DismissDeparture(sObjectId);
+    RequestRefresh();
+  }
+
   // Handle click on departure timer row - dismiss the aircraft
   if (ObjectType == RIMCAS_DEP_WINDOW_ROW) {
     RimcasInstance->DismissDeparture(sObjectId);
@@ -3173,10 +3179,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       totalWidth += colAcTypeWidth + colPadding;
     if (depWindowShowWake)
       totalWidth += colWakeWidth + colPadding;
-    if (depWindowShowFreq)
-      totalWidth += colFreqWidth + colPadding;
     if (depWindowShowTime)
       totalWidth += colTimeWidth + colPadding;
+    if (depWindowShowFreq)
+      totalWidth += colFreqWidth + colPadding;
     totalWidth += 5; // Right padding
 
     int boxHeight =
@@ -3249,18 +3255,23 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
         rowX += colWakeWidth + colPadding;
       }
 
-      if (depWindowShowFreq) {
-        dc.TextOutA(rowX, rowY, info.airborneFreq.c_str());
-        rowX += colFreqWidth + colPadding;
-      }
-
       if (depWindowShowTime) {
         char timeBuffer[16];
         sprintf_s(timeBuffer, "%d:%02d", minutes, seconds);
         dc.TextOutA(rowX, rowY, timeBuffer);
+        rowX += colTimeWidth + colPadding;
       }
 
-      // Add click target for this row
+      if (depWindowShowFreq) {
+        CRect qsyRect = {rowX, rowY, rowX + colFreqWidth, rowY + TextHeight};
+        dc.TextOutA(rowX, rowY, info.airborneFreq.c_str());
+        // Make QSY clickable to dismiss
+        AddScreenObject(RIMCAS_DEP_WINDOW_QSY, info.callsign.c_str(), qsyRect,
+                        true, "Click to dismiss");
+        rowX += colFreqWidth + colPadding;
+      }
+
+      // Add click target for the entire row
       AddScreenObject(RIMCAS_DEP_WINDOW_ROW, info.callsign.c_str(), rowRect,
                       true, "");
 
