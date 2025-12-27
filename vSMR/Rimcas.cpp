@@ -376,7 +376,11 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
       info.wakeTurbCat = "";
       info.wakeTurbCat += fp.GetFlightPlanData().GetAircraftWtc();
 
-      info.airborneFreq = "QSY";
+      // Get airborne QSY from UKCP annotation (index 8) or default to "QSY"
+      info.airborneFreq = fp.GetControllerAssignedData().GetFlightStripAnnotation(8);
+      if (info.airborneFreq.length() == 0) {
+        info.airborneFreq = "QSY";
+      }
 
       info.groundAltitude =
           Rt.GetPreviousPosition(Rt.GetPosition()).GetPressureAltitude();
