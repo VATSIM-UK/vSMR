@@ -3230,6 +3230,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       CRect rowRect = {DepWindowRect.left, rowY, DepWindowRect.right,
                        rowY + TextHeight};
 
+      // Add click target for the entire row FIRST (so QSY can be on top)
+      AddScreenObject(RIMCAS_DEP_WINDOW_ROW, info.callsign.c_str(), rowRect,
+                      true, "");
+
       dc.SetTextColor(RGB(33, 33, 33));
 
       // Draw each enabled column
@@ -3263,15 +3267,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       if (depWindowShowFreq) {
         CRect qsyRect = {rowX, rowY, rowX + colFreqWidth, rowY + TextHeight};
         dc.TextOutA(rowX, rowY, info.airborneFreq.c_str());
-        // Make QSY clickable to dismiss
+        // Make QSY clickable to dismiss (added AFTER row so it's on top)
         AddScreenObject(RIMCAS_DEP_WINDOW_QSY, info.callsign.c_str(), qsyRect,
                         true, "Click to dismiss");
         rowX += colFreqWidth + colPadding;
       }
-
-      // Add click target for the entire row
-      AddScreenObject(RIMCAS_DEP_WINDOW_ROW, info.callsign.c_str(), rowRect,
-                      true, "");
 
       rowY += LineSpacing;
     }
