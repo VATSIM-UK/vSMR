@@ -1,14 +1,12 @@
 #pragma once
 #include "EuroScopePlugIn.h"
 #include "Logger.h"
+#include "SMRRadar.hpp"
 #include <map>
 #include <string>
 
-
 using namespace std;
 using namespace EuroScopePlugIn;
-
-class CSMRRadar;
 
 class CInsetWindow {
 public:
@@ -24,7 +22,7 @@ public:
 
   map<string, double> m_TagAngles;
 
-  virtual void render(HDC Hdc, CSMRRadar *radar_screen, Graphics *gdi,
+  virtual void render(HDC Hdc, CSMRRadar *radar_screen, Gdiplus::Graphics *gdi,
                       POINT mouseLocation,
                       multimap<string, string> DistanceTools);
   virtual void setAirport(string icao);
