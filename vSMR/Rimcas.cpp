@@ -392,15 +392,14 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     }
   }
 
-  // Update timer once aircraft climbs above ground level and is ascending
   if (DepartedAircraft.find(callsign) != DepartedAircraft.end()) {
     DepartureInfo &info = DepartedAircraft[callsign];
     if (!info.timerStarted && isAirborne) {
       int currentAltitude = Rt.GetPosition().GetPressureAltitude();
-      int previousAltitude = Rt.GetPreviousPosition(Rt.GetPosition()).GetPressureAltitude();
-      int verticalSpeed = currentAltitude - previousAltitude;
-      // Only start timer if climbing (positive altitude change)
-      if (currentAltitude > info.groundAltitude && verticalSpeed > 0) {
+      int verticalSpeed = Rt.GetVerticalSpeed();
+      
+      // Only start timer if climbing above ground altitude with > 100 fpm climb rate
+      if (currentAltitude > info.groundAltitude && verticalSpeed > 100) {
         info.liftoffTime = clock();
         info.timerStarted = true;
       }
