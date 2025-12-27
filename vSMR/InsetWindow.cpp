@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "InsetWindow.h"
+#include "SMRRadar.hpp"
+
 
 CInsetWindow::CInsetWindow(int Id) { m_Id = Id; }
 

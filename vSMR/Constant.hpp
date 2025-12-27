@@ -1,7 +1,6 @@
 #pragma once
 
 #include "EuroScopePlugIn.h"
-#include "stdafx.h"
 #include <string>
 
 #define _USE_MATH_DEFINES

@@ -1,12 +1,13 @@
 #pragma once
 #include "EuroScopePlugIn.h"
 #include "Logger.h"
-#include "SMRRadar.hpp"
 #include <map>
 #include <string>
 
 using namespace std;
 using namespace EuroScopePlugIn;
+
+class CSMRRadar;
 
 class CInsetWindow {
 public:
