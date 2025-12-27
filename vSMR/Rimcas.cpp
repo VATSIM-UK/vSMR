@@ -352,8 +352,8 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   if (origin != activeAirport)
     return;
 
-  int reportedGS = Rt.GetPosition().GetReportedGS();
-  bool isMoving = reportedGS > 50;
+  int groundSpeed = Rt.GetGS();
+  bool isMoving = groundSpeed > 50;
 
   // Add aircraft to display once they start moving (> 50 kts)
   if (isMoving && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {

@@ -2243,6 +2243,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
     if (!rt.IsValid() || !rt.GetPosition().IsValid())
       continue;
 
+    // Get flight plan for departure tracking (needed before visibility check)
+    CFlightPlan fp = GetPlugIn()->FlightPlanSelect(rt.GetCallsign());
+    
+    // Track departures for the departure timer window (before visibility check)
+    RimcasInstance->TrackDeparture(rt, fp, this, getActiveAirport());
+
     int reportedGs = rt.GetPosition().GetReportedGS();
     int radarRange =
         CurrentConfig->getActiveProfile()["filters"]["radar_range_nm"].GetInt();
@@ -2256,7 +2262,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       continue;
 
     // Get aircraft type and stand for RIMCAS
-    CFlightPlan fp = GetPlugIn()->FlightPlanSelect(rt.GetCallsign());
     string acType = "";
     string acStand = "";
     if (fp.IsValid() && fp.GetFlightPlanData().IsReceived()) {
@@ -2267,9 +2272,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
     }
 
     RimcasInstance->OnRefresh(rt, this, IsCorrelated(fp, rt), acType, acStand);
-
-    // Track departures for the departure timer window
-    RimcasInstance->TrackDeparture(rt, fp, this, getActiveAirport());
 
     CRadarTargetPositionData RtPos = rt.GetPosition();
 
