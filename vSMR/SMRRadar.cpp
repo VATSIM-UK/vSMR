@@ -1,6 +1,8 @@
-#include "SMRRadar.hpp"
-#include "Resource.h"
 #include "stdafx.h"
+
+#include "Resource.h"
+#include "SMRRadar.hpp"
+
 
 ULONG_PTR m_gdiplusToken;
 CPoint mouseLocation(0, 0);
