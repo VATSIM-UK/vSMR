@@ -412,7 +412,7 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 }
 
 void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int * pColorCode, COLORREF * pRGB, double * pFontSize) {
-	Logger::info(string(__FUNCSIG__));
+
 	if (ItemCode == TAG_ITEM_DATALINK_STS) {
 		if (FlightPlan.IsValid()) {
 			if (std::find(AircraftDemandingClearance.begin(), AircraftDemandingClearance.end(), FlightPlan.GetCallsign()) != AircraftDemandingClearance.end()) {
@@ -457,7 +457,7 @@ void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, 
 
 void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area)
 {
-	Logger::info(string(__FUNCSIG__));
+
 	if (FunctionId == TAG_FUNC_DATALINK_MENU) {
 		CFlightPlan FlightPlan = FlightPlanSelectASEL();
 
@@ -634,7 +634,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 
 void CSMRPlugin::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 {
-	Logger::info(string(__FUNCSIG__));
+
 	CRadarTarget rt = RadarTargetSelect(FlightPlan.GetCallsign());
 
 	if (std::find(ReleasedTracks.begin(), ReleasedTracks.end(), rt.GetSystemID()) != ReleasedTracks.end())
@@ -646,7 +646,7 @@ void CSMRPlugin::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 
 void CSMRPlugin::OnTimer(int Counter)
 {
-	Logger::info(string(__FUNCSIG__));
+
 	BLINK = !BLINK;
 
 	if (HoppieConnected && ConnectionMessage) {
@@ -684,7 +684,7 @@ void CSMRPlugin::OnTimer(int Counter)
 
 CRadarScreen * CSMRPlugin::OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated)
 {
-	Logger::info(string(__FUNCSIG__));
+
 	if (!strcmp(sDisplayName, MY_PLUGIN_VIEW_AVISO)) {
 		CSMRRadar* rd = new CSMRRadar();
 		RadarScreensOpened.push_back(rd);

@@ -6,7 +6,7 @@ CRimcas::CRimcas() {}
 CRimcas::~CRimcas() { Reset(); }
 
 void CRimcas::Reset() {
-  Logger::info(string(__FUNCSIG__));
+
   RunwayAreas.clear();
   AcColor.clear();
   AcOnRunway.clear();
@@ -19,7 +19,7 @@ void CRimcas::Reset() {
 }
 
 void CRimcas::OnRefreshBegin(bool isLVP) {
-  Logger::info(string(__FUNCSIG__));
+
   AcColor.clear();
   AcOnRunway.clear();
   TimeTable.clear();
@@ -29,14 +29,14 @@ void CRimcas::OnRefreshBegin(bool isLVP) {
 
 void CRimcas::OnRefresh(CRadarTarget Rt, CRadarScreen *instance,
                         bool isCorrelated, string acType, string acStand) {
-  Logger::info(string(__FUNCSIG__));
+
   GetAcInRunwayArea(Rt, instance);
   GetAcInRunwayAreaSoon(Rt, instance, isCorrelated, acType, acStand);
 }
 
 void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1,
                             string runway_name2, vector<CPosition> Definition) {
-  Logger::info(string(__FUNCSIG__));
+
   string Name = runway_name1 + " / " + runway_name2;
 
   RunwayAreaType Runway;
@@ -47,7 +47,7 @@ void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1,
 }
 
 string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
-  Logger::info(string(__FUNCSIG__));
+
   int AltitudeDif = Ac.GetPosition().GetFlightLevel() -
                     Ac.GetPreviousPosition(Ac.GetPosition()).GetFlightLevel();
   if (!Ac.GetPosition().GetTransponderC())
@@ -83,7 +83,7 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance,
                                       bool isCorrelated, string acType,
                                       string acStand) {
-  Logger::info(string(__FUNCSIG__));
+
   int AltitudeDif = Ac.GetPosition().GetFlightLevel() -
                     Ac.GetPreviousPosition(Ac.GetPosition()).GetFlightLevel();
   if (!Ac.GetPosition().GetTransponderC())
@@ -199,7 +199,7 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance,
 
 vector<CPosition> CRimcas::GetRunwayArea(CPosition Left, CPosition Right,
                                          float hwidth) {
-  Logger::info(string(__FUNCSIG__));
+
   vector<CPosition> out;
 
   double RunwayBearing = RadToDeg(TrueBearing(Left, Right));
@@ -217,7 +217,7 @@ vector<CPosition> CRimcas::GetRunwayArea(CPosition Left, CPosition Right,
 }
 
 void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
-  Logger::info(string(__FUNCSIG__));
+
   for (map<string, RunwayAreaType>::iterator it = RunwayAreas.begin();
        it != RunwayAreas.end(); ++it) {
 
@@ -292,7 +292,7 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
 }
 
 bool CRimcas::isAcOnRunway(string callsign) {
-  Logger::info(string(__FUNCSIG__));
+
   for (std::map<string, string>::iterator it = AcOnRunway.begin();
        it != AcOnRunway.end(); ++it) {
     if (it->second == callsign)
@@ -303,7 +303,7 @@ bool CRimcas::isAcOnRunway(string callsign) {
 }
 
 CRimcas::RimcasAlertTypes CRimcas::getAlert(string callsign) {
-  Logger::info(string(__FUNCSIG__));
+
   if (AcColor.find(callsign) == AcColor.end())
     return NoAlert;
 
@@ -313,7 +313,7 @@ CRimcas::RimcasAlertTypes CRimcas::getAlert(string callsign) {
 Color CRimcas::GetAircraftColor(string AcCallsign, Color StandardColor,
                                 Color OnRunwayColor, Color RimcasStageOne,
                                 Color RimcasStageTwo) {
-  Logger::info(string(__FUNCSIG__));
+
   if (AcColor.find(AcCallsign) == AcColor.end()) {
     if (isAcOnRunway(AcCallsign)) {
       return OnRunwayColor;
@@ -331,7 +331,7 @@ Color CRimcas::GetAircraftColor(string AcCallsign, Color StandardColor,
 
 Color CRimcas::GetAircraftColor(string AcCallsign, Color StandardColor,
                                 Color OnRunwayColor) {
-  Logger::info(string(__FUNCSIG__));
+
   if (isAcOnRunway(AcCallsign)) {
     return OnRunwayColor;
   } else {
@@ -341,29 +341,20 @@ Color CRimcas::GetAircraftColor(string AcCallsign, Color StandardColor,
 
 void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
                              CRadarScreen *instance, string activeAirport) {
-  Logger::info(string(__FUNCSIG__));
-
-  if (!Rt.IsValid() || !fp.IsValid()) {
-    Logger::info("TrackDeparture: Invalid RT or FP");
+  if (!Rt.IsValid() || !fp.IsValid())
     return;
-  }
 
   string callsign = Rt.GetCallsign();
-  Logger::info("TrackDeparture: Checking " + callsign);
 
   string origin = fp.GetFlightPlanData().GetOrigin();
-  if (origin != activeAirport) {
-    Logger::info("TrackDeparture: " + callsign + " origin " + origin + " != active " + activeAirport);
+  if (origin != activeAirport)
     return;
-  }
 
   int groundSpeed = Rt.GetGS();
   bool isMoving = groundSpeed > 50;
-  Logger::info("TrackDeparture: " + callsign + " GS=" + std::to_string(groundSpeed) + " isMoving=" + (isMoving ? "true" : "false"));
 
   // Add aircraft to display once they start moving (> 50 kts)
   if (isMoving && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
-    Logger::info("TrackDeparture: Adding " + callsign + " to departed list");
     DepartureInfo info;
     info.callsign = callsign;
     if (info.callsign.length() > 8) {
@@ -396,7 +387,6 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     info.dismissed = false;
 
     DepartedAircraft[callsign] = info;
-    Logger::info("TrackDeparture: Successfully added " + callsign + " to departed list");
   }
 
   // Start timer once aircraft is airborne and climbing
@@ -406,7 +396,6 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     
     // Remove aircraft if above 6000 feet
     if (currentAltitude > 6000) {
-      Logger::info("TrackDeparture: Removing " + callsign + " - above 6000 feet (alt=" + std::to_string(currentAltitude) + ")");
       DepartedAircraft.erase(callsign);
       return;
     }
@@ -418,14 +407,13 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
       if (currentAltitude > info.groundAltitude && verticalSpeed > 100) {
         info.liftoffTime = clock();
         info.timerStarted = true;
-        Logger::info("TrackDeparture: Started timer for " + callsign + " VS=" + std::to_string(verticalSpeed));
       }
     }
   }
 }
 
 void CRimcas::UpdateDepartureTimer(int departureDisplayDurationSecs, CRadarScreen *instance) {
-  Logger::info(string(__FUNCSIG__));
+
 
   clock_t currentTime = clock();
   double maxDurationSecs = (double)departureDisplayDurationSecs;
@@ -457,7 +445,7 @@ void CRimcas::UpdateDepartureTimer(int departureDisplayDurationSecs, CRadarScree
 }
 
 void CRimcas::DismissDeparture(string callsign) {
-  Logger::info(string(__FUNCSIG__));
+
 
   if (DepartedAircraft.find(callsign) != DepartedAircraft.end()) {
     DepartedAircraft[callsign].dismissed = true;
@@ -465,7 +453,7 @@ void CRimcas::DismissDeparture(string callsign) {
 }
 
 void CRimcas::ClearDismissedDepartures() {
-  Logger::info(string(__FUNCSIG__));
+
 
   vector<string> toRemove;
   for (auto &pair : DepartedAircraft) {
