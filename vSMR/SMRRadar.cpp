@@ -3331,8 +3331,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       rowY += LineSpacing;
     }
 
-    // Add the window itself as a movable object
-    AddScreenObject(RIMCAS_DEP_WINDOW, "dep_window", DepWindowRect, true, "");
+    // Add the window itself as a movable object (non-clickable so it doesn't block QSY/ROW clicks)
+    AddScreenObject(RIMCAS_DEP_WINDOW, "dep_window", DepWindowRect, false, "");
   }
 
 
