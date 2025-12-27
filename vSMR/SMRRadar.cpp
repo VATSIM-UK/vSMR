@@ -815,44 +815,13 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char *sObjectId,
                                getActiveAirport().c_str());
   }
 
-  // DEBUG: Log ALL clicks to see what's happening
-  Logger::info("OnClickScreenObject: ObjectType=" + std::to_string(ObjectType) + ", sObjectId='" + string(sObjectId) + "', RIMCAS_DEP_WINDOW_QSY=" + std::to_string(RIMCAS_DEP_WINDOW_QSY));
-
   // Handle click on QSY to dismiss the aircraft
   if (ObjectType == RIMCAS_DEP_WINDOW_QSY) {
-    Logger::info("=== QSY CLICK ===");
-    Logger::info("Mouse Pos: x=" + std::to_string(Pt.x) + ", y=" + std::to_string(Pt.y));
-    Logger::info("Click Area: left=" + std::to_string(Area.left) + ", right=" + std::to_string(Area.right) + ", top=" + std::to_string(Area.top) + ", bottom=" + std::to_string(Area.bottom));
-    Logger::info("Raw sObjectId: '" + string(sObjectId) + "' (length=" + std::to_string(strlen(sObjectId)) + ")");
-    Logger::info("Departed Aircraft in list: " + std::to_string(RimcasInstance->DepartedAircraft.size()));
-    for (auto &pair : RimcasInstance->DepartedAircraft) {
-      Logger::info("  - " + pair.first + " (dismissed=" + (pair.second.dismissed ? "true" : "false") + ")");
-    }
-    
-    // Extract callsign from "QSY_" + callsign
     string idStr(sObjectId);
     if (idStr.length() > 4 && idStr.substr(0, 4) == "QSY_") {
-      string callsign = idStr.substr(4); // Skip "QSY_"
-      Logger::info("Attempting to dismiss: " + callsign);
+      string callsign = idStr.substr(4);
       RimcasInstance->DismissDeparture(callsign);
       RequestRefresh();
-    } else {
-      Logger::info("ERROR: sObjectId doesn't start with 'QSY_': '" + idStr + "'");
-    }
-  }
-
-  // Handle click on departure timer row - dismiss the aircraft
-  if (ObjectType == RIMCAS_DEP_WINDOW_ROW) {
-    Logger::info("ROW clicked - raw sObjectId: '" + string(sObjectId) + "'");
-    // Extract callsign from "ROW_" + callsign
-    string idStr(sObjectId);
-    if (idStr.length() > 4 && idStr.substr(0, 4) == "ROW_") {
-      string callsign = idStr.substr(4); // Skip "ROW_"
-      Logger::info("Row clicked for " + callsign);
-      RimcasInstance->DismissDeparture(callsign);
-      RequestRefresh();
-    } else {
-      Logger::info("ERROR: ROW sObjectId doesn't start with 'ROW_': '" + idStr + "'");
     }
   }
 
@@ -3313,10 +3282,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
         int textWidth = dc.GetTextExtent(info.airborneFreq.c_str()).cx;
         int qsyX = rowX + colFreqWidth - textWidth - 2; // -2 for padding from edge
         dc.TextOutA(qsyX, rowY, info.airborneFreq.c_str());
-        // Make QSY clickable to dismiss (added AFTER row so it's on top)
-        // Use a unique key format: "QSY_" + callsign
+        // Make QSY clickable to dismiss
         string qsyKey = "QSY_" + info.callsign;
-        Logger::info("Registering QSY object: key='" + qsyKey + "', rect=(" + std::to_string(qsyRect.left) + "," + std::to_string(qsyRect.top) + "," + std::to_string(qsyRect.right) + "," + std::to_string(qsyRect.bottom) + ")");
         AddScreenObject(RIMCAS_DEP_WINDOW_QSY, qsyKey.c_str(), qsyRect,
                         true, "Click to dismiss");
         rowX += colFreqWidth + colPadding;
