@@ -389,7 +389,6 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     info.dismissed = false;
 
     DepartedAircraft[callsign] = info;
-    Logger::info("TrackDeparture: Added " + callsign + " to DepartedAircraft, groundAlt=" + std::to_string(info.groundAltitude));
   }
 
   // Update and start timer once aircraft is airborne
