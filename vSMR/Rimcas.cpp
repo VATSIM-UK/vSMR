@@ -368,7 +368,7 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     if (DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
       DepartureInfo info;
       info.callsign = callsign;
-      info.destination = fp.GetFlightPlanData().GetDestination();
+      info.sid = fp.GetFlightPlanData().GetSidName();
       info.acType = fp.GetFlightPlanData().GetAircraftFPType();
       if (info.acType.size() > 4) {
         info.acType = info.acType.substr(0, 4);

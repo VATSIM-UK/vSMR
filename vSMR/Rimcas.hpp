@@ -44,7 +44,7 @@ public:
   // Departure timer info
   struct DepartureInfo {
     string callsign = "";
-    string destination = "";
+    string sid = ""; // SID/departure
     string acType = "";
     string wakeTurbCat = "";
     string airborneFreq = ""; // QSY frequency

@@ -1,7 +1,6 @@
+#include "stdafx.h"
 #include "SMRRadar.hpp"
 #include "Resource.h"
-#include "stdafx.h"
-
 
 ULONG_PTR m_gdiplusToken;
 CPoint mouseLocation(0, 0);
@@ -3233,7 +3232,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       }
 
       if (depWindowShowDest) {
-        dc.TextOutA(rowX, rowY, info.destination.c_str());
+        dc.TextOutA(rowX, rowY, info.sid.c_str());
         rowX += colDestWidth + colPadding;
       }
 
