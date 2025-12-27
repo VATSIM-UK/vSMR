@@ -350,11 +350,9 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   if (origin != activeAirport)
     return;
 
-  int groundSpeed = Rt.GetGS();
-  bool isMoving = groundSpeed > 50;
+  bool onRunway = isAcOnRunway(callsign);
 
-  // Add aircraft to display once they start moving (> 50 kts)
-  if (isMoving && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
+  if (onRunway && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
     DepartureInfo info;
     info.callsign = callsign;
     if (info.callsign.length() > 8) {
@@ -389,7 +387,7 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     DepartedAircraft[callsign] = info;
   }
 
-  // Start timer once aircraft is airborne and climbing
+  // Update and start timer once aircraft is airborne
   if (DepartedAircraft.find(callsign) != DepartedAircraft.end()) {
     DepartureInfo &info = DepartedAircraft[callsign];
     int currentAltitude = Rt.GetPosition().GetPressureAltitude();
@@ -403,7 +401,7 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     if (!info.timerStarted) {
       int verticalSpeed = Rt.GetVerticalSpeed();
       
-      // Only start timer if climbing above ground altitude with > 100 fpm climb rate
+      // Start timer once airborne: climbing above ground altitude with > 100 fpm climb rate
       if (currentAltitude > info.groundAltitude && verticalSpeed > 100) {
         info.liftoffTime = clock();
         info.timerStarted = true;
