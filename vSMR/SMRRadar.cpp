@@ -817,12 +817,17 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char *sObjectId,
 
   // Handle click on QSY to dismiss the aircraft
   if (ObjectType == RIMCAS_DEP_WINDOW_QSY) {
+    Logger::info("QSY clicked - raw sObjectId: '" + string(sObjectId) + "' length=" + std::to_string(strlen(sObjectId)));
     // Extract callsign from "QSY_" + callsign
     string idStr(sObjectId);
-    string callsign = idStr.substr(4); // Skip "QSY_"
-    Logger::info("QSY clicked for " + callsign);
-    RimcasInstance->DismissDeparture(callsign);
-    RequestRefresh();
+    if (idStr.length() > 4 && idStr.substr(0, 4) == "QSY_") {
+      string callsign = idStr.substr(4); // Skip "QSY_"
+      Logger::info("QSY clicked for " + callsign);
+      RimcasInstance->DismissDeparture(callsign);
+      RequestRefresh();
+    } else {
+      Logger::info("ERROR: sObjectId doesn't start with 'QSY_': '" + idStr + "'");
+    }
   }
 
   // Handle click on departure timer row - dismiss the aircraft
@@ -3289,7 +3294,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
         // Make QSY clickable to dismiss (added AFTER row so it's on top)
         // Use a unique key format: "QSY_" + callsign
         string qsyKey = "QSY_" + info.callsign;
-        Logger::info("Adding QSY button for callsign: " + info.callsign + " with key: " + qsyKey);
         AddScreenObject(RIMCAS_DEP_WINDOW_QSY, qsyKey.c_str(), qsyRect,
                         true, "Click to dismiss");
         rowX += colFreqWidth + colPadding;
