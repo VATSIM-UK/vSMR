@@ -817,12 +817,20 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char *sObjectId,
 
   // Handle click on QSY to dismiss the aircraft
   if (ObjectType == RIMCAS_DEP_WINDOW_QSY) {
-    Logger::info("QSY clicked - raw sObjectId: '" + string(sObjectId) + "' length=" + std::to_string(strlen(sObjectId)));
+    Logger::info("=== QSY CLICK ===");
+    Logger::info("Mouse Pos: x=" + std::to_string(Pt.x) + ", y=" + std::to_string(Pt.y));
+    Logger::info("Click Area: left=" + std::to_string(Area.left) + ", right=" + std::to_string(Area.right) + ", top=" + std::to_string(Area.top) + ", bottom=" + std::to_string(Area.bottom));
+    Logger::info("Raw sObjectId: '" + string(sObjectId) + "' (length=" + std::to_string(strlen(sObjectId)) + ")");
+    Logger::info("Departed Aircraft in list: " + std::to_string(RimcasInstance->DepartedAircraft.size()));
+    for (auto &pair : RimcasInstance->DepartedAircraft) {
+      Logger::info("  - " + pair.first + " (dismissed=" + (pair.second.dismissed ? "true" : "false") + ")");
+    }
+    
     // Extract callsign from "QSY_" + callsign
     string idStr(sObjectId);
     if (idStr.length() > 4 && idStr.substr(0, 4) == "QSY_") {
       string callsign = idStr.substr(4); // Skip "QSY_"
-      Logger::info("QSY clicked for " + callsign);
+      Logger::info("Attempting to dismiss: " + callsign);
       RimcasInstance->DismissDeparture(callsign);
       RequestRefresh();
     } else {
@@ -832,12 +840,17 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char *sObjectId,
 
   // Handle click on departure timer row - dismiss the aircraft
   if (ObjectType == RIMCAS_DEP_WINDOW_ROW) {
+    Logger::info("ROW clicked - raw sObjectId: '" + string(sObjectId) + "'");
     // Extract callsign from "ROW_" + callsign
     string idStr(sObjectId);
-    string callsign = idStr.substr(4); // Skip "ROW_"
-    Logger::info("Row clicked for " + callsign);
-    RimcasInstance->DismissDeparture(callsign);
-    RequestRefresh();
+    if (idStr.length() > 4 && idStr.substr(0, 4) == "ROW_") {
+      string callsign = idStr.substr(4); // Skip "ROW_"
+      Logger::info("Row clicked for " + callsign);
+      RimcasInstance->DismissDeparture(callsign);
+      RequestRefresh();
+    } else {
+      Logger::info("ERROR: ROW sObjectId doesn't start with 'ROW_': '" + idStr + "'");
+    }
   }
 
   if (ObjectType == DRAWING_BACKGROUND_CLICK) {
@@ -3220,14 +3233,26 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
                     dc.GetTextExtent(headerText.c_str()).cx / 2,
                 headerY, headerText.c_str());
 
-    // Draw each departure row
+    // Draw each departure row (sorted by time)
     int rowY = DepWindowRect.top + LineSpacing;
     clock_t currentTime = clock();
 
+    // Create sorted vector of departures by liftoff time (newest first)
+    vector<pair<string, CRimcas::DepartureInfo>> sortedDepartures;
     for (auto &pair : RimcasInstance->DepartedAircraft) {
-      if (pair.second.dismissed)
-        continue;
+      if (!pair.second.dismissed) {
+        sortedDepartures.push_back(pair);
+      }
+    }
+    
+    // Sort by liftoff time descending (most recent at top)
+    std::sort(sortedDepartures.begin(), sortedDepartures.end(),
+              [](const pair<string, CRimcas::DepartureInfo> &a,
+                 const pair<string, CRimcas::DepartureInfo> &b) {
+                return a.second.liftoffTime > b.second.liftoffTime;
+              });
 
+    for (auto &pair : sortedDepartures) {
       CRimcas::DepartureInfo &info = pair.second;
       int rowX = DepWindowRect.left + 5;
 
