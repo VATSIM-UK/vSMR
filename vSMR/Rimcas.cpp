@@ -343,20 +343,27 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
                              CRadarScreen *instance, string activeAirport) {
   Logger::info(string(__FUNCSIG__));
 
-  if (!Rt.IsValid() || !fp.IsValid())
+  if (!Rt.IsValid() || !fp.IsValid()) {
+    Logger::info("TrackDeparture: Invalid RT or FP");
     return;
+  }
 
   string callsign = Rt.GetCallsign();
+  Logger::info("TrackDeparture: Checking " + callsign);
 
   string origin = fp.GetFlightPlanData().GetOrigin();
-  if (origin != activeAirport)
+  if (origin != activeAirport) {
+    Logger::info("TrackDeparture: " + callsign + " origin " + origin + " != active " + activeAirport);
     return;
+  }
 
   int groundSpeed = Rt.GetGS();
   bool isMoving = groundSpeed > 50;
+  Logger::info("TrackDeparture: " + callsign + " GS=" + std::to_string(groundSpeed) + " isMoving=" + (isMoving ? "true" : "false"));
 
   // Add aircraft to display once they start moving (> 50 kts)
   if (isMoving && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
+    Logger::info("TrackDeparture: Adding " + callsign + " to departed list");
     DepartureInfo info;
     info.callsign = callsign;
     if (info.callsign.length() > 8) {
@@ -389,6 +396,7 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     info.dismissed = false;
 
     DepartedAircraft[callsign] = info;
+    Logger::info("TrackDeparture: Successfully added " + callsign + " to departed list");
   }
 
   // Start timer once aircraft is airborne and climbing
@@ -398,6 +406,7 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     
     // Remove aircraft if above 6000 feet
     if (currentAltitude > 6000) {
+      Logger::info("TrackDeparture: Removing " + callsign + " - above 6000 feet (alt=" + std::to_string(currentAltitude) + ")");
       DepartedAircraft.erase(callsign);
       return;
     }
@@ -409,6 +418,7 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
       if (currentAltitude > info.groundAltitude && verticalSpeed > 100) {
         info.liftoffTime = clock();
         info.timerStarted = true;
+        Logger::info("TrackDeparture: Started timer for " + callsign + " VS=" + std::to_string(verticalSpeed));
       }
     }
   }
