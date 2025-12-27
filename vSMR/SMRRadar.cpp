@@ -2530,7 +2530,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
           .GetInt());
 
   // Update departure timer - remove expired/dismissed entries
-  RimcasInstance->UpdateDepartureTimer(departureDisplayDuration);
+  RimcasInstance->UpdateDepartureTimer(departureDisplayDuration, this);
   RimcasInstance->ClearDismissedDepartures();
 
   graphics.SetSmoothingMode(SmoothingModeDefault);

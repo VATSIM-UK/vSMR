@@ -383,8 +383,15 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   // Start timer once aircraft is airborne and climbing
   if (DepartedAircraft.find(callsign) != DepartedAircraft.end()) {
     DepartureInfo &info = DepartedAircraft[callsign];
+    int currentAltitude = Rt.GetPosition().GetPressureAltitude();
+    
+    // Remove aircraft if above 6000 feet
+    if (currentAltitude > 6000) {
+      DepartedAircraft.erase(callsign);
+      return;
+    }
+    
     if (!info.timerStarted) {
-      int currentAltitude = Rt.GetPosition().GetPressureAltitude();
       int verticalSpeed = Rt.GetVerticalSpeed();
       
       // Only start timer if climbing above ground altitude with > 100 fpm climb rate
@@ -396,7 +403,7 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   }
 }
 
-void CRimcas::UpdateDepartureTimer(int departureDisplayDurationSecs) {
+void CRimcas::UpdateDepartureTimer(int departureDisplayDurationSecs, CRadarScreen *instance) {
   Logger::info(string(__FUNCSIG__));
 
   clock_t currentTime = clock();
@@ -405,6 +412,13 @@ void CRimcas::UpdateDepartureTimer(int departureDisplayDurationSecs) {
   vector<string> toRemove;
   for (auto &pair : DepartedAircraft) {
     if (pair.second.dismissed) {
+      toRemove.push_back(pair.first);
+      continue;
+    }
+
+    // Remove if above 6000 feet
+    CRadarTarget rt = instance->GetPlugIn()->RadarTargetSelect(pair.first.c_str());
+    if (rt.IsValid() && rt.GetPosition().GetPressureAltitude() > 6000) {
       toRemove.push_back(pair.first);
       continue;
     }

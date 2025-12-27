@@ -146,7 +146,7 @@ public:
   // Departure timer methods
   void TrackDeparture(CRadarTarget Rt, CFlightPlan fp, CRadarScreen *instance,
                       string activeAirport);
-  void UpdateDepartureTimer(int departureDisplayDuration);
+  void UpdateDepartureTimer(int departureDisplayDuration, CRadarScreen *instance);
   void DismissDeparture(string callsign);
   void ClearDismissedDepartures();
 
