@@ -12,7 +12,6 @@
 #include <functional>
 #include <math.h>
 
-
 class CSMRRadar;
 using namespace std;
 using namespace Gdiplus;
@@ -51,6 +50,8 @@ public:
     string airborneFreq = ""; // QSY frequency
     clock_t liftoffTime = 0;
     bool dismissed = false;
+    int groundAltitude = 0;    // Altitude when on ground
+    bool timerStarted = false; // Whether timer has begun
   };
 
   map<string, RunwayAreaType> RunwayAreas;

@@ -1,6 +1,5 @@
-#include "stdafx.h"
 #include "Rimcas.hpp"
-
+#include "stdafx.h"
 
 CRimcas::CRimcas() {}
 
@@ -379,10 +378,25 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
 
       info.airborneFreq = "QSY";
 
-      info.liftoffTime = clock();
+      info.groundAltitude =
+          Rt.GetPreviousPosition(Rt.GetPosition()).GetPressureAltitude();
+      info.liftoffTime = 0;
+      info.timerStarted = false;
       info.dismissed = false;
 
       DepartedAircraft[callsign] = info;
+    }
+  }
+
+  // Update timer once aircraft climbs above ground level
+  if (DepartedAircraft.find(callsign) != DepartedAircraft.end()) {
+    DepartureInfo &info = DepartedAircraft[callsign];
+    if (!info.timerStarted && isAirborne) {
+      int currentAltitude = Rt.GetPosition().GetPressureAltitude();
+      if (currentAltitude > info.groundAltitude) {
+        info.liftoffTime = clock();
+        info.timerStarted = true;
+      }
     }
   }
 }

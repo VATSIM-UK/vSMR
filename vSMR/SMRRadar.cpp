@@ -1,6 +1,7 @@
-#include "stdafx.h"
 #include "SMRRadar.hpp"
 #include "Resource.h"
+#include "stdafx.h"
+
 
 ULONG_PTR m_gdiplusToken;
 CPoint mouseLocation(0, 0);
@@ -3211,9 +3212,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       CRimcas::DepartureInfo &info = pair.second;
       int rowX = DepWindowRect.left + 5;
 
-      // Calculate elapsed time since liftoff
-      double elapsedSecs =
-          (double)(currentTime - info.liftoffTime) / CLOCKS_PER_SEC;
+      // Calculate elapsed time since liftoff (only if timer has started)
+      double elapsedSecs = 0;
+      if (info.timerStarted) {
+        elapsedSecs = (double)(currentTime - info.liftoffTime) / CLOCKS_PER_SEC;
+      }
       int minutes = (int)(elapsedSecs / 60);
       int seconds = (int)(elapsedSecs) % 60;
 
