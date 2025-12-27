@@ -353,48 +353,37 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     return;
 
   int reportedGS = Rt.GetPosition().GetReportedGS();
-  bool isAirborne = reportedGS > 50;
+  bool isMoving = reportedGS > 50;
 
-  bool wasOnGround = false;
-  if (AircraftWasOnGround.find(callsign) != AircraftWasOnGround.end()) {
-    wasOnGround = AircraftWasOnGround[callsign];
-  } else {
-    wasOnGround = !isAirborne;
-  }
-
-  AircraftWasOnGround[callsign] = !isAirborne;
-
-  if (wasOnGround && isAirborne) {
-    if (DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
-      DepartureInfo info;
-      info.callsign = callsign;
-      info.sid = fp.GetFlightPlanData().GetSidName();
-      info.acType = fp.GetFlightPlanData().GetAircraftFPType();
-      if (info.acType.size() > 4) {
-        info.acType = info.acType.substr(0, 4);
-      }
-      info.wakeTurbCat = "";
-      info.wakeTurbCat += fp.GetFlightPlanData().GetAircraftWtc();
-
-      // Get airborne QSY from UKCP annotation (index 8) or default to "QSY"
-      info.airborneFreq = fp.GetControllerAssignedData().GetFlightStripAnnotation(8);
-      if (info.airborneFreq.length() == 0) {
-        info.airborneFreq = "QSY";
-      }
-
-      info.groundAltitude =
-          Rt.GetPreviousPosition(Rt.GetPosition()).GetPressureAltitude();
-      info.liftoffTime = 0;
-      info.timerStarted = false;
-      info.dismissed = false;
-
-      DepartedAircraft[callsign] = info;
+  // Add aircraft to display once they start moving (> 50 kts)
+  if (isMoving && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
+    DepartureInfo info;
+    info.callsign = callsign;
+    info.sid = fp.GetFlightPlanData().GetSidName();
+    info.acType = fp.GetFlightPlanData().GetAircraftFPType();
+    if (info.acType.size() > 4) {
+      info.acType = info.acType.substr(0, 4);
     }
+    info.wakeTurbCat = "";
+    info.wakeTurbCat += fp.GetFlightPlanData().GetAircraftWtc();
+
+    info.airborneFreq = fp.GetControllerAssignedData().GetFlightStripAnnotation(8);
+    if (info.airborneFreq.length() == 0) {
+      info.airborneFreq = "QSY";
+    }
+
+    info.groundAltitude = Rt.GetPosition().GetPressureAltitude();
+    info.liftoffTime = 0;
+    info.timerStarted = false;
+    info.dismissed = false;
+
+    DepartedAircraft[callsign] = info;
   }
 
+  // Start timer once aircraft is airborne and climbing
   if (DepartedAircraft.find(callsign) != DepartedAircraft.end()) {
     DepartureInfo &info = DepartedAircraft[callsign];
-    if (!info.timerStarted && isAirborne) {
+    if (!info.timerStarted) {
       int currentAltitude = Rt.GetPosition().GetPressureAltitude();
       int verticalSpeed = Rt.GetVerticalSpeed();
       
