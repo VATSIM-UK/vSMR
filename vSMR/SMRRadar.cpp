@@ -3319,6 +3319,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
         // Make QSY clickable to dismiss (added AFTER row so it's on top)
         // Use a unique key format: "QSY_" + callsign
         string qsyKey = "QSY_" + info.callsign;
+        Logger::info("Registering QSY object: key='" + qsyKey + "', rect=(" + std::to_string(qsyRect.left) + "," + std::to_string(qsyRect.top) + "," + std::to_string(qsyRect.right) + "," + std::to_string(qsyRect.bottom) + ")");
         AddScreenObject(RIMCAS_DEP_WINDOW_QSY, qsyKey.c_str(), qsyRect,
                         true, "Click to dismiss");
         rowX += colFreqWidth + colPadding;
