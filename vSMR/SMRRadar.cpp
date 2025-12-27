@@ -817,15 +817,21 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char *sObjectId,
 
   // Handle click on QSY to dismiss the aircraft
   if (ObjectType == RIMCAS_DEP_WINDOW_QSY) {
-    Logger::info("QSY clicked for " + string(sObjectId));
-    RimcasInstance->DismissDeparture(sObjectId);
+    // Extract callsign from "QSY_" + callsign
+    string idStr(sObjectId);
+    string callsign = idStr.substr(4); // Skip "QSY_"
+    Logger::info("QSY clicked for " + callsign);
+    RimcasInstance->DismissDeparture(callsign);
     RequestRefresh();
   }
 
   // Handle click on departure timer row - dismiss the aircraft
   if (ObjectType == RIMCAS_DEP_WINDOW_ROW) {
-    Logger::info("Row clicked for " + string(sObjectId));
-    RimcasInstance->DismissDeparture(sObjectId);
+    // Extract callsign from "ROW_" + callsign
+    string idStr(sObjectId);
+    string callsign = idStr.substr(4); // Skip "ROW_"
+    Logger::info("Row clicked for " + callsign);
+    RimcasInstance->DismissDeparture(callsign);
     RequestRefresh();
   }
 
@@ -3233,8 +3239,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
                        rowY + TextHeight};
 
       // Add click target for the entire row FIRST (so QSY can be on top)
-      AddScreenObject(RIMCAS_DEP_WINDOW_ROW, info.callsign.c_str(), rowRect,
-                      true, "");
+      // Use a unique key format: "ROW_" + callsign
+      string rowKey = "ROW_" + info.callsign;
+      AddScreenObject(RIMCAS_DEP_WINDOW_ROW, rowKey.c_str(), rowRect, true, "");
 
       dc.SetTextColor(RGB(33, 33, 33));
 
@@ -3280,8 +3287,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
         int qsyX = rowX + colFreqWidth - textWidth - 2; // -2 for padding from edge
         dc.TextOutA(qsyX, rowY, info.airborneFreq.c_str());
         // Make QSY clickable to dismiss (added AFTER row so it's on top)
-        Logger::info("Adding QSY button for callsign: " + info.callsign);
-        AddScreenObject(RIMCAS_DEP_WINDOW_QSY, info.callsign.c_str(), qsyRect,
+        // Use a unique key format: "QSY_" + callsign
+        string qsyKey = "QSY_" + info.callsign;
+        Logger::info("Adding QSY button for callsign: " + info.callsign + " with key: " + qsyKey);
+        AddScreenObject(RIMCAS_DEP_WINDOW_QSY, qsyKey.c_str(), qsyRect,
                         true, "Click to dismiss");
         rowX += colFreqWidth + colPadding;
       }
