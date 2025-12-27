@@ -3134,7 +3134,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
   // ==========================================
   Logger::info("Departure Timer Window");
 
-  if (showDepartureWindow && !RimcasInstance->DepartedAircraft.empty()) {
+  if (showDepartureWindow) {
     // Calculate box dimensions based on content
     int maxWidth = 0;
     int numColumns = 0;
