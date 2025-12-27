@@ -1,390 +1,415 @@
 #pragma once
 #include <EuroScopePlugIn.h>
-#include <string>
-#include <vector>
-#include <map>
-#include <algorithm>
-#include <time.h>
 #include <GdiPlus.h>
+#include <algorithm>
+#include <map>
+#include <string>
+#include <time.h>
+#include <vector>
+
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include "Constant.hpp"
+#include "AircraftTypeLookup.hpp"
 #include "CallsignLookup.hpp"
-#include "Config.hpp"
-#include "Rimcas.hpp"
-#include "InsetWindow.h"
-#include <memory>
-#include <asio/io_service.hpp>
-#include <thread>
 #include "ColorManager.h"
+#include "Config.hpp"
+#include "Constant.hpp"
+#include "HttpHelper.hpp"
+#include "InsetWindow.h"
 #include "Logger.h"
+#include "Rimcas.hpp"
+#include <asio/io_service.hpp>
 #include <filesystem>
 #include <iostream>
-#include "AircraftTypeLookup.hpp"
-#include "HttpHelper.hpp"
+#include <math.h>
+#include <memory>
+#include <thread>
+
 
 using namespace std;
 using namespace Gdiplus;
 using namespace EuroScopePlugIn;
 namespace fs = std::filesystem;
 
-namespace SMRSharedData
-{
-	static vector<string> ReleasedTracks;
-	static vector<string> ManuallyCorrelated;
-};
+namespace SMRSharedData {
+static vector<string> ReleasedTracks;
+static vector<string> ManuallyCorrelated;
+}; // namespace SMRSharedData
 
-
-namespace SMRPluginSharedData
-{
-	static asio::io_service io_service;
+namespace SMRPluginSharedData {
+static asio::io_service io_service;
 }
 
 using namespace SMRSharedData;
 
-class CSMRRadar :
-	public EuroScopePlugIn::CRadarScreen
-{
+class CSMRRadar : public EuroScopePlugIn::CRadarScreen {
 public:
-	CSMRRadar();
-	virtual ~CSMRRadar();
+  CSMRRadar();
+  virtual ~CSMRRadar();
 
-	static map<string, string> vStripsStands;
+  static map<string, string> vStripsStands;
 
-	bool BLINK = false;
+  bool BLINK = false;
 
-	map<string, POINT> TagsOffsets;
+  map<string, POINT> TagsOffsets;
 
-	vector<string> Active_Arrivals;
+  vector<string> Active_Arrivals;
 
-	clock_t clock_init, clock_final;
+  clock_t clock_init, clock_final;
 
-	COLORREF SMR_TARGET_COLOR = RGB(255, 242, 73);
-	COLORREF SMR_H1_COLOR = RGB(0, 255, 255);
-	COLORREF SMR_H2_COLOR = RGB(0, 219, 219);
-	COLORREF SMR_H3_COLOR = RGB(0, 183, 183);
+  COLORREF SMR_TARGET_COLOR = RGB(255, 242, 73);
+  COLORREF SMR_H1_COLOR = RGB(0, 255, 255);
+  COLORREF SMR_H2_COLOR = RGB(0, 219, 219);
+  COLORREF SMR_H3_COLOR = RGB(0, 183, 183);
 
-	typedef struct tagPOINT2 {
-		double x;
-		double y;
-	} POINT2;
+  typedef struct tagPOINT2 {
+    double x;
+    double y;
+  } POINT2;
 
-	struct Patatoide_Points {
-		map<int, POINT2> points;
-		map<int, POINT2> History_one_points;
-		map<int, POINT2> History_two_points;
-		map<int, POINT2> History_three_points;
-	};
+  struct Patatoide_Points {
+    map<int, POINT2> points;
+    map<int, POINT2> History_one_points;
+    map<int, POINT2> History_two_points;
+    map<int, POINT2> History_three_points;
+  };
 
-	map<const char *, Patatoide_Points> Patatoides;
+  map<const char *, Patatoide_Points> Patatoides;
 
-	map<string, bool> ClosedRunway;
+  map<string, bool> ClosedRunway;
 
-	char DllPathFile[_MAX_PATH];
-	string DllPath;
-	string ConfigPath;
-	CCallsignLookup * Callsigns = nullptr;
-	CAircraftTypeLookup * AircraftTypes = nullptr;
-	CColorManager * ColorManager;
+  char DllPathFile[_MAX_PATH];
+  string DllPath;
+  string ConfigPath;
+  CCallsignLookup *Callsigns = nullptr;
+  CAircraftTypeLookup *AircraftTypes = nullptr;
+  CColorManager *ColorManager;
 
-	map<string, bool> ShowLists;
-	map<string, RECT> ListAreas;
+  map<string, bool> ShowLists;
+  map<string, RECT> ListAreas;
 
-	map<int, bool> appWindowDisplays;
-	bool wipAreasActive = true;
+  map<int, bool> appWindowDisplays;
+  bool wipAreasActive = true;
 
-	map<string, CRect> tagAreas;
-	map<string, double> TagAngles;
-	map<string, int> TagLeaderLineLength;
+  map<string, CRect> tagAreas;
+  map<string, double> TagAngles;
+  map<string, int> TagLeaderLineLength;
 
-	bool QDMenabled = false;
-	bool QDMSelectEnabled = false;
-	POINT QDMSelectPt;
-	POINT QDMmousePt;
+  bool QDMenabled = false;
+  bool QDMSelectEnabled = false;
+  POINT QDMSelectPt;
+  POINT QDMmousePt;
 
-	bool ColorSettingsDay = true;
+  bool ColorSettingsDay = true;
 
-	bool isLVP = false;
-	bool detailedRIMCAS = true;
+  bool isLVP = false;
+  bool detailedRIMCAS = true;
 
-	map<string, RECT> TimePopupAreas;
+  // Departure Timer Window settings
+  bool showDepartureWindow = true;
+  int departureDisplayDuration = 180; // 3 minutes in seconds (default)
+  bool depWindowShowCallsign = true;
+  bool depWindowShowDest = true;
+  bool depWindowShowAcType = true;
+  bool depWindowShowWake = true;
+  bool depWindowShowFreq = true;
+  bool depWindowShowTime = true;
+  RECT DepartureWindowArea = {500, 300, 700, 400};
 
-	map<int, string> TimePopupData;
-	multimap<string, string> AcOnRunway;
-	map<string, bool> ColorAC;
+  map<string, RECT> TimePopupAreas;
 
-	map<string, CRimcas::RunwayAreaType> RunwayAreas;
+  map<int, string> TimePopupData;
+  multimap<string, string> AcOnRunway;
+  map<string, bool> ColorAC;
 
-	map<string, RECT> MenuPositions;
-	map<string, bool> DisplayMenu;
+  map<string, CRimcas::RunwayAreaType> RunwayAreas;
 
-	map<string, clock_t> RecentlyAutoMovedTags;
+  map<string, RECT> MenuPositions;
+  map<string, bool> DisplayMenu;
 
-	CRimcas * RimcasInstance = nullptr;
-	CConfig * CurrentConfig = nullptr;
+  map<string, clock_t> RecentlyAutoMovedTags;
 
-	map<int, Gdiplus::Font *> customFonts;
-	int currentFontSize = 1;
+  CRimcas *RimcasInstance = nullptr;
+  CConfig *CurrentConfig = nullptr;
 
-	map<string, CPosition> AirportPositions;
+  map<int, Gdiplus::Font *> customFonts;
+  int currentFontSize = 1;
 
-	bool Afterglow = true;
+  map<string, CPosition> AirportPositions;
 
-	int Trail_Gnd = 4;
-	int Trail_App = 4;
-	int PredictedLength = 0;
+  bool Afterglow = true;
 
-	bool showAircraftType = true;
-	bool showSID = true;
-	bool showWakeTurb = true;
+  int Trail_Gnd = 4;
+  int Trail_App = 4;
+  int PredictedLength = 0;
 
-	bool NeedCorrelateCursor = false;
-	bool ReleaseInProgress = false;
-	bool AcquireInProgress = false;
+  bool showAircraftType = true;
+  bool showSID = true;
+  bool showWakeTurb = true;
 
-	multimap<string, string> DistanceTools;
-	bool DistanceToolActive = false;
-	pair<string, string> ActiveDistance;
+  bool NeedCorrelateCursor = false;
+  bool ReleaseInProgress = false;
+  bool AcquireInProgress = false;
 
-	vector<vector<CPosition>> wipAreas;
+  multimap<string, string> DistanceTools;
+  bool DistanceToolActive = false;
+  pair<string, string> ActiveDistance;
 
-	//----
-	// Tag types
-	//---
+  vector<vector<CPosition>> wipAreas;
 
-	enum TagTypes { Departure, Arrival, Airborne, Uncorrelated };
+  //----
+  // Tag types
+  //---
 
+  enum TagTypes { Departure, Arrival, Airborne, Uncorrelated };
 
-	string ActiveAirport = "EGKK";
+  string ActiveAirport = "EGKK";
 
-	inline string getActiveAirport() {
-		return ActiveAirport;
-	}
+  inline string getActiveAirport() { return ActiveAirport; }
 
-	inline string setActiveAirport(string value) {
-		return ActiveAirport = value;
-	}
+  inline string setActiveAirport(string value) { return ActiveAirport = value; }
 
-	//---GenerateTagData--------------------------------------------
+  //---GenerateTagData--------------------------------------------
 
-	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates, string ActiveAirport, bool showAircraftType, bool showSID, bool showWakeTurb);
+  static map<string, string>
+  GenerateTagData(CRadarTarget Rt, CFlightPlan fp, bool isAcCorrelated,
+                  bool isProMode, int TransitionAltitude, bool useSpeedForGates,
+                  string ActiveAirport, bool showAircraftType, bool showSID,
+                  bool showWakeTurb);
 
-	//---IsCorrelatedFuncs---------------------------------------------
+  //---IsCorrelatedFuncs---------------------------------------------
 
-	inline virtual bool IsCorrelated(CFlightPlan fp, CRadarTarget rt)
-	{
+  inline virtual bool IsCorrelated(CFlightPlan fp, CRadarTarget rt) {
 
-		if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool())
-		{
-			if (fp.IsValid())
-			{
-				bool isCorr = false;
-				if (strcmp(fp.GetControllerAssignedData().GetSquawk(), rt.GetPosition().GetSquawk()) == 0)
-				{
-					isCorr = true;
-				}
+    if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"]
+            .GetBool()) {
+      if (fp.IsValid()) {
+        bool isCorr = false;
+        if (strcmp(fp.GetControllerAssignedData().GetSquawk(),
+                   rt.GetPosition().GetSquawk()) == 0) {
+          isCorr = true;
+        }
 
-				if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["accept_pilot_squawk"].GetBool())
-				{
-					isCorr = true;
-				}
+        if (CurrentConfig
+                ->getActiveProfile()["filters"]["pro_mode"]
+                                    ["accept_pilot_squawk"]
+                .GetBool()) {
+          isCorr = true;
+        }
 
-				if (isCorr)
-				{
-					const Value& sqs = CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["do_not_autocorrelate_squawks"];
-					for (SizeType i = 0; i < sqs.Size(); i++) {
-						if (strcmp(rt.GetPosition().GetSquawk(), sqs[i].GetString()) == 0)
-						{
-							isCorr = false;
-							break;
-						}
-					}
-				}
+        if (isCorr) {
+          const Value &sqs =
+              CurrentConfig->getActiveProfile()["filters"]["pro_mode"]
+                                               ["do_not_autocorrelate_squawks"];
+          for (SizeType i = 0; i < sqs.Size(); i++) {
+            if (strcmp(rt.GetPosition().GetSquawk(), sqs[i].GetString()) == 0) {
+              isCorr = false;
+              break;
+            }
+          }
+        }
 
-				if (std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(), rt.GetSystemID()) != ManuallyCorrelated.end())
-				{
-					isCorr = true;
-				}
+        if (std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(),
+                      rt.GetSystemID()) != ManuallyCorrelated.end()) {
+          isCorr = true;
+        }
 
-				if (std::find(ReleasedTracks.begin(), ReleasedTracks.end(), rt.GetSystemID()) != ReleasedTracks.end())
-				{
-					isCorr = false;
-				}
+        if (std::find(ReleasedTracks.begin(), ReleasedTracks.end(),
+                      rt.GetSystemID()) != ReleasedTracks.end()) {
+          isCorr = false;
+        }
 
-				return isCorr;
-			}
+        return isCorr;
+      }
 
-			return false;
-		} else
-		{
-			// If the pro mode is not used, then the AC is always correlated
-			return true;
-		}
-	};
+      return false;
+    } else {
+      // If the pro mode is not used, then the AC is always correlated
+      return true;
+    }
+  };
 
-	//---CorrelateCursor--------------------------------------------
+  //---CorrelateCursor--------------------------------------------
 
-	virtual void CorrelateCursor();
+  virtual void CorrelateCursor();
 
-	//---LoadCustomFont--------------------------------------------
+  //---LoadCustomFont--------------------------------------------
 
-	virtual void LoadCustomFont();
+  virtual void LoadCustomFont();
 
-	//---LoadProfile--------------------------------------------
+  //---LoadProfile--------------------------------------------
 
-	virtual void LoadProfile(string profileName);
+  virtual void LoadProfile(string profileName);
 
-	//---OnAsrContentLoaded--------------------------------------------
+  //---OnAsrContentLoaded--------------------------------------------
 
-	virtual void OnAsrContentLoaded(bool Loaded);
+  virtual void OnAsrContentLoaded(bool Loaded);
 
-	//---OnAsrContentToBeSaved------------------------------------------
+  //---OnAsrContentToBeSaved------------------------------------------
 
-	virtual void OnAsrContentToBeSaved();
+  virtual void OnAsrContentToBeSaved();
 
-	//---OnRefresh------------------------------------------------------
+  //---OnRefresh------------------------------------------------------
 
-	virtual void OnRefresh(HDC hDC, int Phase);
+  virtual void OnRefresh(HDC hDC, int Phase);
 
-	//---OnClickScreenObject-----------------------------------------
+  //---OnClickScreenObject-----------------------------------------
 
-	virtual void OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button);
+  virtual void OnClickScreenObject(int ObjectType, const char *sObjectId,
+                                   POINT Pt, RECT Area, int Button);
 
-	//---OnMoveScreenObject---------------------------------------------
+  //---OnMoveScreenObject---------------------------------------------
 
-	virtual void OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released);
+  virtual void OnMoveScreenObject(int ObjectType, const char *sObjectId,
+                                  POINT Pt, RECT Area, bool Released);
 
-	//---OnOverScreenObject---------------------------------------------
+  //---OnOverScreenObject---------------------------------------------
 
-	virtual void OnOverScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area);
+  virtual void OnOverScreenObject(int ObjectType, const char *sObjectId,
+                                  POINT Pt, RECT Area);
 
-	//---OnCompileCommand-----------------------------------------
+  //---OnCompileCommand-----------------------------------------
 
-	virtual bool OnCompileCommand(const char * sCommandLine);
+  virtual bool OnCompileCommand(const char *sCommandLine);
 
-	//---RefreshAirportActivity---------------------------------------------
+  //---RefreshAirportActivity---------------------------------------------
 
-	virtual void RefreshAirportActivity(void);
+  virtual void RefreshAirportActivity(void);
 
-	//---OnRadarTargetPositionUpdate---------------------------------------------
+  //---OnRadarTargetPositionUpdate---------------------------------------------
 
-	virtual void OnRadarTargetPositionUpdate(CRadarTarget RadarTarget);
+  virtual void OnRadarTargetPositionUpdate(CRadarTarget RadarTarget);
 
-	//---OnFlightPlanDisconnect---------------------------------------------
+  //---OnFlightPlanDisconnect---------------------------------------------
 
-	virtual void OnFlightPlanDisconnect(CFlightPlan FlightPlan);
+  virtual void OnFlightPlanDisconnect(CFlightPlan FlightPlan);
 
-	virtual bool isVisible(CRadarTarget rt)
-	{
-		CRadarTargetPositionData RtPos = rt.GetPosition();
-		int radarRange = CurrentConfig->getActiveProfile()["filters"]["radar_range_nm"].GetInt();
-		int altitudeFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_alt"].GetInt();
-		int speedFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_spd"].GetInt();
-		bool isAcDisplayed = true;
+  virtual bool isVisible(CRadarTarget rt) {
+    CRadarTargetPositionData RtPos = rt.GetPosition();
+    int radarRange =
+        CurrentConfig->getActiveProfile()["filters"]["radar_range_nm"].GetInt();
+    int altitudeFilter =
+        CurrentConfig->getActiveProfile()["filters"]["hide_above_alt"].GetInt();
+    int speedFilter =
+        CurrentConfig->getActiveProfile()["filters"]["hide_above_spd"].GetInt();
+    bool isAcDisplayed = true;
 
-		if (AirportPositions[getActiveAirport()].DistanceTo(RtPos.GetPosition()) > radarRange)
-			isAcDisplayed = false;
+    if (AirportPositions[getActiveAirport()].DistanceTo(RtPos.GetPosition()) >
+        radarRange)
+      isAcDisplayed = false;
 
-		if (altitudeFilter != 0) {
-			if (RtPos.GetPressureAltitude() > altitudeFilter)
-				isAcDisplayed = false;
-		}
+    if (altitudeFilter != 0) {
+      if (RtPos.GetPressureAltitude() > altitudeFilter)
+        isAcDisplayed = false;
+    }
 
-		if (speedFilter != 0) {
-			if (RtPos.GetReportedGS() > speedFilter)
-				isAcDisplayed = false;
-		}
+    if (speedFilter != 0) {
+      if (RtPos.GetReportedGS() > speedFilter)
+        isAcDisplayed = false;
+    }
 
-		return isAcDisplayed;
-	}
+    return isAcDisplayed;
+  }
 
-	//---Haversine---------------------------------------------
-	// Heading in deg, distance in m
-	const double PI = (double)M_PI;
+  //---Haversine---------------------------------------------
+  // Heading in deg, distance in m
+  const double PI = (double)M_PI;
 
-	inline virtual CPosition Haversine(CPosition origin, double heading, double distance) {
+  inline virtual CPosition Haversine(CPosition origin, double heading,
+                                     double distance) {
 
-		CPosition newPos;
+    CPosition newPos;
 
-		double d = (distance*0.00053996) / 60 * PI / 180;
-		double trk = DegToRad(heading);
-		double lat0 = DegToRad(origin.m_Latitude);
-		double lon0 = DegToRad(origin.m_Longitude);
+    double d = (distance * 0.00053996) / 60 * PI / 180;
+    double trk = DegToRad(heading);
+    double lat0 = DegToRad(origin.m_Latitude);
+    double lon0 = DegToRad(origin.m_Longitude);
 
-		double lat = asin(sin(lat0) * cos(d) + cos(lat0) * sin(d) * cos(trk));
-		double lon = cos(lat) == 0 ? lon0 : fmod(lon0 + asin(sin(trk) * sin(d) / cos(lat)) + PI, 2 * PI) - PI;
+    double lat = asin(sin(lat0) * cos(d) + cos(lat0) * sin(d) * cos(trk));
+    double lon =
+        cos(lat) == 0
+            ? lon0
+            : fmod(lon0 + asin(sin(trk) * sin(d) / cos(lat)) + PI, 2 * PI) - PI;
 
-		newPos.m_Latitude = RadToDeg(lat);
-		newPos.m_Longitude = RadToDeg(lon);
+    newPos.m_Latitude = RadToDeg(lat);
+    newPos.m_Longitude = RadToDeg(lon);
 
-		return newPos;
-	}
+    return newPos;
+  }
 
-	inline virtual float randomizeHeading(float originHead) {
-		return float(fmod(originHead + float((rand() % 5) - 2), 360));
-	}
+  inline virtual float randomizeHeading(float originHead) {
+    return float(fmod(originHead + float((rand() % 5) - 2), 360));
+  }
 
-	// IsPointInPolygon
+  // IsPointInPolygon
 
-	static bool IsPointInPolygon(const CPosition& point, const std::vector<CPosition>& polygon) {
-		int n = polygon.size();
-		bool inside = false;
+  static bool IsPointInPolygon(const CPosition &point,
+                               const std::vector<CPosition> &polygon) {
+    int n = polygon.size();
+    bool inside = false;
 
-		for (int i = 0, j = n - 1; i < n; j = i++) {
-			if (((polygon[i].m_Longitude > point.m_Longitude) != (polygon[j].m_Longitude > point.m_Longitude)) &&
-				(point.m_Latitude < (polygon[j].m_Latitude - polygon[i].m_Latitude) * (point.m_Longitude - polygon[i].m_Longitude) / (polygon[j].m_Longitude - polygon[i].m_Longitude) + polygon[i].m_Latitude)) {
-				inside = !inside;
-			}
-		}
+    for (int i = 0, j = n - 1; i < n; j = i++) {
+      if (((polygon[i].m_Longitude > point.m_Longitude) !=
+           (polygon[j].m_Longitude > point.m_Longitude)) &&
+          (point.m_Latitude <
+           (polygon[j].m_Latitude - polygon[i].m_Latitude) *
+                   (point.m_Longitude - polygon[i].m_Longitude) /
+                   (polygon[j].m_Longitude - polygon[i].m_Longitude) +
+               polygon[i].m_Latitude)) {
+        inside = !inside;
+      }
+    }
 
-		return inside;
-	}
+    return inside;
+  }
 
-	//---GetBottomLine---------------------------------------------
+  //---GetBottomLine---------------------------------------------
 
-	virtual string GetBottomLine(const char * Callsign);
+  virtual string GetBottomLine(const char *Callsign);
 
-	//---LineIntersect---------------------------------------------
+  //---LineIntersect---------------------------------------------
 
-	/*inline virtual POINT getIntersectionPoint(POINT lineA, POINT lineB, POINT lineC, POINT lineD) {
+  /*inline virtual POINT getIntersectionPoint(POINT lineA, POINT lineB, POINT
+  lineC, POINT lineD) {
 
-		double x1 = lineA.x;
-		double y1 = lineA.y;
-		double x2 = lineB.x;
-		double y2 = lineB.y;
+          double x1 = lineA.x;
+          double y1 = lineA.y;
+          double x2 = lineB.x;
+          double y2 = lineB.y;
 
-		double x3 = lineC.x;
-		double y3 = lineC.y;
-		double x4 = lineD.x;
-		double y4 = lineD.y;
+          double x3 = lineC.x;
+          double y3 = lineC.y;
+          double x4 = lineD.x;
+          double y4 = lineD.y;
 
-		POINT p = { 0, 0 };
+          POINT p = { 0, 0 };
 
-		double d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-		if (d != 0) {
-			double xi = ((x3 - x4) * (x1 * y2 - y1 * x2) - (x1 - x2) * (x3 * y4 - y3 * x4)) / d;
-			double yi = ((y3 - y4) * (x1 * y2 - y1 * x2) - (y1 - y2) * (x3 * y4 - y3 * x4)) / d;
+          double d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+          if (d != 0) {
+                  double xi = ((x3 - x4) * (x1 * y2 - y1 * x2) - (x1 - x2) * (x3
+  * y4 - y3 * x4)) / d; double yi = ((y3 - y4) * (x1 * y2 - y1 * x2) - (y1 - y2)
+  * (x3 * y4 - y3 * x4)) / d;
 
-			p = { (int)xi, (int)yi };
+                  p = { (int)xi, (int)yi };
 
-		}
-		return p;
-	}*/
+          }
+          return p;
+  }*/
 
-	//---OnFunctionCall-------------------------------------------------
+  //---OnFunctionCall-------------------------------------------------
 
-	virtual void OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area);
+  virtual void OnFunctionCall(int FunctionId, const char *sItemString, POINT Pt,
+                              RECT Area);
 
-	//---OnAsrContentToBeClosed-----------------------------------------
+  //---OnAsrContentToBeClosed-----------------------------------------
 
-	void CSMRRadar::EuroScopePlugInExitCustom();
+  void CSMRRadar::EuroScopePlugInExitCustom();
 
-	//  This gets called before OnAsrContentToBeSaved()
-	// -> we can't delete CurrentConfig just yet otherwise we can't save the active profile
-	inline virtual void OnAsrContentToBeClosed(void)
-	{
-		delete RimcasInstance;
-		//delete CurrentConfig;
-		delete this;
-	};
+  //  This gets called before OnAsrContentToBeSaved()
+  // -> we can't delete CurrentConfig just yet otherwise we can't save the
+  // active profile
+  inline virtual void OnAsrContentToBeClosed(void) {
+    delete RimcasInstance;
+    // delete CurrentConfig;
+    delete this;
+  };
 };
