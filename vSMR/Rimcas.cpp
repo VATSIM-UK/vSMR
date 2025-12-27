@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Rimcas.hpp"
+#include "Logger.h"
 
 CRimcas::CRimcas() {}
 
@@ -347,10 +348,13 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   string callsign = Rt.GetCallsign();
 
   string origin = fp.GetFlightPlanData().GetOrigin();
-  if (origin != activeAirport)
+  if (origin != activeAirport) {
+    Logger::info("TrackDeparture: " + callsign + " origin " + origin + " != activeAirport " + activeAirport);
     return;
+  }
 
   bool onRunway = isAcOnRunway(callsign);
+  Logger::info("TrackDeparture: " + callsign + " onRunway=" + (onRunway ? "true" : "false"));
 
   if (onRunway && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
     DepartureInfo info;
@@ -385,6 +389,7 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     info.dismissed = false;
 
     DepartedAircraft[callsign] = info;
+    Logger::info("TrackDeparture: Added " + callsign + " to DepartedAircraft, groundAlt=" + std::to_string(info.groundAltitude));
   }
 
   // Update and start timer once aircraft is airborne
@@ -394,6 +399,7 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     
     // Remove aircraft if above 6000 feet
     if (currentAltitude > 6000) {
+      Logger::info("TrackDeparture: Removing " + callsign + " - above 6000ft (alt=" + std::to_string(currentAltitude) + ")");
       DepartedAircraft.erase(callsign);
       return;
     }
@@ -405,6 +411,7 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
       if (currentAltitude > info.groundAltitude && verticalSpeed > 100) {
         info.liftoffTime = clock();
         info.timerStarted = true;
+        Logger::info("TrackDeparture: Timer started for " + callsign + " - airborne (alt=" + std::to_string(currentAltitude) + ", vs=" + std::to_string(verticalSpeed) + ")");
       }
     }
   }

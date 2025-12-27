@@ -3136,7 +3136,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
   // ==========================================
 
 
-  if (showDepartureWindow) {
+  if (showDepartureWindow && RimcasInstance->DepartedAircraft.size() > 0) {
     // Calculate box dimensions based on content
     int maxWidth = 0;
     int numColumns = 0;
