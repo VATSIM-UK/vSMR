@@ -355,7 +355,6 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   // Check if aircraft is actually in a runway area (using same logic as GetAcInRunwayArea)
   string runwayArea = GetAcInRunwayArea(Rt, instance);
   bool onRunway = (runwayArea != string_false);
-  Logger::info("TrackDeparture: " + callsign + " onRunway=" + (onRunway ? "true" : "false") + " runway=" + runwayArea);
 
   if (onRunway && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
     DepartureInfo info;
