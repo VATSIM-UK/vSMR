@@ -3270,15 +3270,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       int minutes = (int)(elapsedSecs / 60);
       int seconds = (int)(elapsedSecs) % 60;
 
-      // Create row rect for click detection
-      CRect rowRect = {DepWindowRect.left, rowY, DepWindowRect.right,
-                       rowY + TextHeight};
-
-      // Add click target for the entire row FIRST (so QSY can be on top)
-      // Use a unique key format: "ROW_" + callsign
-      string rowKey = "ROW_" + info.callsign;
-      AddScreenObject(RIMCAS_DEP_WINDOW_ROW, rowKey.c_str(), rowRect, true, "");
-
       dc.SetTextColor(RGB(33, 33, 33));
 
       // Draw each enabled column
