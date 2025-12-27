@@ -437,10 +437,13 @@ void CRimcas::UpdateDepartureTimer(int departureDisplayDurationSecs, CRadarScree
       continue;
     }
 
-    double elapsedSecs =
-        (double)(currentTime - pair.second.liftoffTime) / CLOCKS_PER_SEC;
-    if (elapsedSecs >= maxDurationSecs) {
-      toRemove.push_back(pair.first);
+    // Only check timer expiry if timer has actually started
+    if (pair.second.timerStarted) {
+      double elapsedSecs =
+          (double)(currentTime - pair.second.liftoffTime) / CLOCKS_PER_SEC;
+      if (elapsedSecs >= maxDurationSecs) {
+        toRemove.push_back(pair.first);
+      }
     }
   }
 
