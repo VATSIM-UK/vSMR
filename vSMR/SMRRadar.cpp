@@ -3236,6 +3236,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
                     dc.GetTextExtent(headerText.c_str()).cx / 2,
                 headerY, headerText.c_str());
 
+    // Add the window itself as a movable object FIRST (so QSY/ROW objects will be on top)
+    AddScreenObject(RIMCAS_DEP_WINDOW, "dep_window", DepWindowRect, true, "");
+
     // Draw each departure row (sorted by time)
     int rowY = DepWindowRect.top + LineSpacing;
     clock_t currentTime = clock();
@@ -3330,9 +3333,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
 
       rowY += LineSpacing;
     }
-
-    // Add the window itself as a movable object (non-clickable so it doesn't block QSY/ROW clicks)
-    AddScreenObject(RIMCAS_DEP_WINDOW, "dep_window", DepWindowRect, false, "");
   }
 
 
