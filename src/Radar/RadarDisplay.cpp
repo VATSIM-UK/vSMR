@@ -57,14 +57,15 @@ void RadarDisplay::OnRefresh(HDC hDC, int phase)
         {
             std::string callsign = radarTarget.GetCallsign();
 
-            // Draw afterglow first (older positions)
-            aircraftRenderer->DrawAircraftAfterGlow(
-                hDC, callsign, [this](const EuroScopePlugIn::CPosition & pos)
-                { return ConvertCoordFromPositionToPixel(pos); });
-
             // Get radar target position and heading
             EuroScopePlugIn::CPosition radarPos =
                 radarTarget.GetPosition().GetPosition();
+            double groundSpeed = radarTarget.GetPosition().GetReportedGS();
+
+            // Draw afterglow first (older positions)
+            aircraftRenderer->DrawAircraftAfterGlow(
+                hDC, callsign, groundSpeed, [this](const EuroScopePlugIn::CPosition & pos)
+                { return ConvertCoordFromPositionToPixel(pos); });
             double heading =
                 radarTarget.GetPosition().GetReportedHeadingTrueNorth();
 

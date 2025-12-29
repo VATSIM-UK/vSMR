@@ -108,11 +108,13 @@ class AircraftRenderer
      * Draw afterglow effect for an aircraft using history points
      * @param hDC Device context
      * @param callsign Aircraft callsign to draw afterglow for
+     * @param groundSpeed Aircraft ground speed in knots
      * @param coordConverter Function to convert CPosition to screen POINT
      */
     void DrawAircraftAfterGlow(
         HDC hDC,
         const std::string & callsign,
+        double groundSpeed,
         std::function<POINT(const EuroScopePlugIn::CPosition &)>
             coordConverter);
 

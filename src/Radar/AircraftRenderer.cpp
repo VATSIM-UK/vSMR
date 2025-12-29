@@ -375,8 +375,12 @@ void AircraftRenderer::DrawCorrelationSymbol(
 void AircraftRenderer::DrawAircraftAfterGlow(
     HDC hDC,
     const std::string & callsign,
+    double groundSpeed,
     std::function<POINT(const EuroScopePlugIn::CPosition &)> coordConverter)
 {
+    // Only display afterglow if speed is over 5 knots
+    if (groundSpeed <= 5.0) { return; }
+
     // Check if we have shape data for this aircraft
     auto it = aircraftShapes.find(callsign);
     if (it == aircraftShapes.end()) { return; }
