@@ -1,0 +1,38 @@
+name: Build DLL
+
+on:
+  pull_request:
+    branches: [dev, develop]
+  push:
+    branches: [dev, develop]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+    
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.14'
+    
+    - name: Install Conan
+      run: |
+        pip install conan
+        conan --version
+    
+    - name: Install Deps
+      run: conan install . --profile=profiles/win32-msvc --build=missing
+    
+    - name: Build with Conan
+      run: conan build . --profile=profiles/win32-msvc --build=missing
+    
+    - name: Upload DLL artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: vSMR-dll
+        path: build/bin/vSMR.dll
+        if-no-files-found: error
