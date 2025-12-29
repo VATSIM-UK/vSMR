@@ -16,6 +16,30 @@ constexpr int FONT_HEIGHT        = 14;
 constexpr int FONT_WEIGHT        = FW_NORMAL;
 
 /**
+ * Structure to hold measured tag dimensions
+ */
+struct TagDimensions
+{
+    int maxLineWidth;
+    int totalHeight;
+    int lineHeight;
+    std::vector<int> lineWidths;
+};
+
+/**
+ * Create and select the standard tag font
+ * @return Handle to created font (must be deleted by caller)
+ */
+HFONT CreateTagFont(HDC hDC)
+{
+    HFONT hFont = CreateFontA(FONT_HEIGHT, 0, 0, 0, FONT_WEIGHT, FALSE, FALSE,
+                              FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS,
+                              CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+                              DEFAULT_PITCH | FF_DONTCARE, FONT_NAME);
+    return hFont;
+}
+
+/**
  * Liang-Barsky line clipping algorithm to clip a line to a rectangle
  */
 bool LiangBarskyClip(const RECT & rect,
@@ -66,6 +90,177 @@ bool LiangBarskyClip(const RECT & rect,
 
     return true;
 }
+
+/**
+ * Draw a leader line from aircraft to tag edge using Liang-Barsky clipping
+ */
+void DrawLeaderLine(HDC hDC,
+                    POINT aircraftScreenPos,
+                    POINT tagCenter,
+                    const RECT & tagRect)
+{
+    POINT lineStart, lineEnd;
+    if (!LiangBarskyClip(tagRect, aircraftScreenPos, tagCenter, lineStart,
+                         lineEnd))
+    {
+        return;
+    }
+
+    HPEN linePen =
+        CreatePen(PS_SOLID, CONNECTION_LINE_WIDTH, RGB(255, 255, 255));
+    HPEN oldPen = (HPEN)SelectObject(hDC, linePen);
+
+    MoveToEx(hDC, aircraftScreenPos.x, aircraftScreenPos.y, nullptr);
+    LineTo(hDC, lineStart.x, lineStart.y);
+
+    SelectObject(hDC, oldPen);
+    DeleteObject(linePen);
+}
+
+/**
+ * Draw the tag background rectangle
+ */
+void DrawTagBackground(HDC hDC, const RECT & rect, COLORREF backgroundColor)
+{
+    HBRUSH bgBrush  = CreateSolidBrush(backgroundColor);
+    HBRUSH oldBrush = (HBRUSH)SelectObject(hDC, bgBrush);
+    HPEN oldPen     = (HPEN)SelectObject(hDC, GetStockObject(NULL_PEN));
+
+    Rectangle(hDC, rect.left, rect.top, rect.right + 1, rect.bottom + 1);
+
+    SelectObject(hDC, oldPen);
+    SelectObject(hDC, oldBrush);
+    DeleteObject(bgBrush);
+}
+
+/**
+ * Measure dimensions for multi-line tag content
+ */
+TagDimensions MeasureTagLines(HDC hDC,
+                              const TagData & tagData,
+                              const std::vector<TagLine> & tagLines,
+                              int spaceWidth)
+{
+    TagDimensions dims = {0, 0, 0, {}};
+
+    for (const auto & line : tagLines)
+    {
+        int lineWidth    = 0;
+        bool hasContent  = false;
+        int elementCount = 0;
+
+        for (const auto & itemName : line)
+        {
+            TagItemType itemType = Tag::ParseTagItemType(itemName);
+            auto it              = tagData.items.find(itemType);
+            std::string text = (it != tagData.items.end()) ? it->second : "";
+
+            if (!text.empty())
+            {
+                hasContent = true;
+                SIZE textSize;
+                GetTextExtentPoint32A(hDC, text.c_str(),
+                                      static_cast<int>(text.length()),
+                                      &textSize);
+                lineWidth += textSize.cx;
+                dims.lineHeight = textSize.cy;
+
+                if (elementCount < static_cast<int>(line.size()) - 1)
+                {
+                    lineWidth += spaceWidth;
+                }
+            }
+            elementCount++;
+        }
+
+        dims.lineWidths.push_back(lineWidth);
+        if (hasContent)
+        {
+            dims.maxLineWidth =
+                (dims.maxLineWidth > lineWidth) ? dims.maxLineWidth : lineWidth;
+            dims.totalHeight += dims.lineHeight;
+        }
+    }
+
+    return dims;
+}
+
+/**
+ * Draw multi-line tag text content
+ */
+void DrawMultiLineTagText(HDC hDC,
+                          const RECT & tagRect,
+                          const TagData & tagData,
+                          const std::vector<TagLine> & tagLines,
+                          int lineHeight,
+                          int spaceWidth,
+                          COLORREF textColor)
+{
+    SetTextColor(hDC, textColor);
+    SetBkMode(hDC, TRANSPARENT);
+
+    int currentY = tagRect.top + TAG_PADDING;
+
+    for (size_t lineIdx = 0; lineIdx < tagLines.size(); ++lineIdx)
+    {
+        const auto & line = tagLines[lineIdx];
+        bool hasContent   = false;
+        int currentX      = tagRect.left + TAG_PADDING;
+
+        // Check if line has content
+        for (const auto & itemName : line)
+        {
+            TagItemType itemType = Tag::ParseTagItemType(itemName);
+            auto it              = tagData.items.find(itemType);
+            if (it != tagData.items.end() && !it->second.empty())
+            {
+                hasContent = true;
+                break;
+            }
+        }
+
+        if (!hasContent) continue;
+
+        // Draw each element in the line
+        for (size_t elemIdx = 0; elemIdx < line.size(); ++elemIdx)
+        {
+            const auto & itemName = line[elemIdx];
+            TagItemType itemType  = Tag::ParseTagItemType(itemName);
+            auto it               = tagData.items.find(itemType);
+            std::string text = (it != tagData.items.end()) ? it->second : "";
+
+            if (!text.empty())
+            {
+                TextOutA(hDC, currentX, currentY, text.c_str(),
+                         static_cast<int>(text.length()));
+
+                SIZE textSize;
+                GetTextExtentPoint32A(hDC, text.c_str(),
+                                      static_cast<int>(text.length()),
+                                      &textSize);
+                currentX += textSize.cx;
+
+                // Check if there's more content after this element
+                bool hasNextContent = false;
+                for (size_t k = elemIdx + 1; k < line.size(); ++k)
+                {
+                    TagItemType nextType = Tag::ParseTagItemType(line[k]);
+                    auto nextIt          = tagData.items.find(nextType);
+                    if (nextIt != tagData.items.end() &&
+                        !nextIt->second.empty())
+                    {
+                        hasNextContent = true;
+                        break;
+                    }
+                }
+                if (hasNextContent) { currentX += spaceWidth; }
+            }
+        }
+
+        currentY += lineHeight;
+    }
+}
+
 } // namespace
 
 TagItemType Tag::ParseTagItemType(const std::string & itemName)
@@ -117,11 +312,7 @@ RECT Tag::DrawMultiLineTag(HDC hDC,
     tagCenter.x = aircraftScreenPos.x + tagOffsetX;
     tagCenter.y = aircraftScreenPos.y + tagOffsetY;
 
-    HFONT hFont = CreateFontA(FONT_HEIGHT, 0, 0, 0, FONT_WEIGHT, FALSE, FALSE,
-                              FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS,
-                              CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
-                              DEFAULT_PITCH | FF_DONTCARE, FONT_NAME);
-
+    HFONT hFont   = CreateTagFont(hDC);
     HFONT oldFont = (HFONT)SelectObject(hDC, hFont);
 
     // Measure space width
@@ -129,59 +320,19 @@ RECT Tag::DrawMultiLineTag(HDC hDC,
     GetTextExtentPoint32A(hDC, " ", 1, &spaceSize);
     int spaceWidth = spaceSize.cx;
 
-    int maxLineWidth = 0;
-    int totalHeight  = 0;
-    int lineHeight   = 0;
-    std::vector<int> lineWidths;
+    // Measure all tag lines
+    TagDimensions dims = MeasureTagLines(hDC, tagData, tagLines, spaceWidth);
 
-    for (const auto & line : tagLines)
+    if (dims.totalHeight == 0)
     {
-        int lineWidth    = 0;
-        bool hasContent  = false;
-        int elementCount = 0;
-
-        for (const auto & itemName : line)
-        {
-            TagItemType itemType = ParseTagItemType(itemName);
-            auto it              = tagData.items.find(itemType);
-            std::string text = (it != tagData.items.end()) ? it->second : "";
-
-            if (!text.empty())
-            {
-                hasContent = true;
-                SIZE textSize;
-                GetTextExtentPoint32A(hDC, text.c_str(),
-                                      static_cast<int>(text.length()),
-                                      &textSize);
-                lineWidth += textSize.cx;
-                lineHeight = textSize.cy; // All lines should have same height
-
-                // Add space between elements (but not after last element)
-                if (elementCount < static_cast<int>(line.size()) - 1)
-                {
-                    lineWidth += spaceWidth;
-                }
-            }
-            elementCount++;
-        }
-
-        lineWidths.push_back(lineWidth);
-        if (hasContent)
-        {
-            maxLineWidth =
-                (maxLineWidth > lineWidth) ? maxLineWidth : lineWidth;
-            totalHeight += lineHeight;
-        }
+        SelectObject(hDC, oldFont);
+        DeleteObject(hFont);
+        return {0, 0, 0, 0};
     }
 
-    if (totalHeight == 0)
-    {
-        RECT emptyRect = {0, 0, 0, 0};
-        return emptyRect;
-    }
-
-    int boxWidth  = maxLineWidth + (TAG_PADDING * 2);
-    int boxHeight = totalHeight + (TAG_PADDING * 2);
+    // Calculate tag rectangle
+    int boxWidth  = dims.maxLineWidth + (TAG_PADDING * 2);
+    int boxHeight = dims.totalHeight + (TAG_PADDING * 2);
 
     int left   = tagCenter.x - (boxWidth / 2);
     int top    = tagCenter.y - (boxHeight / 2);
@@ -190,93 +341,15 @@ RECT Tag::DrawMultiLineTag(HDC hDC,
 
     RECT boxRect = {left, top, right, bottom};
 
-    POINT lineStart, lineEnd;
-    if (LiangBarskyClip(boxRect, aircraftScreenPos, tagCenter, lineStart,
-                        lineEnd))
-    {
-        HPEN linePen =
-            CreatePen(PS_SOLID, CONNECTION_LINE_WIDTH, RGB(255, 255, 255));
-        HPEN oldPen = (HPEN)SelectObject(hDC, linePen);
+    // Draw leader line
+    DrawLeaderLine(hDC, aircraftScreenPos, tagCenter, boxRect);
 
-        MoveToEx(hDC, aircraftScreenPos.x, aircraftScreenPos.y, nullptr);
-        LineTo(hDC, lineStart.x, lineStart.y);
+    // Draw background
+    DrawTagBackground(hDC, boxRect, backgroundColor);
 
-        SelectObject(hDC, oldPen);
-        DeleteObject(linePen);
-    }
-
-    HBRUSH bgBrush  = CreateSolidBrush(backgroundColor);
-    HBRUSH oldBrush = (HBRUSH)SelectObject(hDC, bgBrush);
-    HPEN oldPen     = (HPEN)SelectObject(hDC, GetStockObject(NULL_PEN));
-
-    Rectangle(hDC, left, top, right + 1, bottom + 1);
-
-    SelectObject(hDC, oldPen);
-    SelectObject(hDC, oldBrush);
-    DeleteObject(bgBrush);
-
-    SetTextColor(hDC, textColor);
-    SetBkMode(hDC, TRANSPARENT);
-
-    // Draw each line of text
-    int currentY = top + TAG_PADDING;
-
-    for (size_t lineIdx = 0; lineIdx < tagLines.size(); ++lineIdx)
-    {
-        const auto & line = tagLines[lineIdx];
-        bool hasContent   = false;
-        int currentX      = left + TAG_PADDING;
-
-        // Check if line has content
-        for (const auto & itemName : line)
-        {
-            TagItemType itemType = ParseTagItemType(itemName);
-            auto it              = tagData.items.find(itemType);
-            if (it != tagData.items.end() && !it->second.empty())
-            {
-                hasContent = true;
-                break;
-            }
-        }
-
-        if (!hasContent) continue;
-
-        for (size_t elemIdx = 0; elemIdx < line.size(); ++elemIdx)
-        {
-            const auto & itemName = line[elemIdx];
-            TagItemType itemType  = ParseTagItemType(itemName);
-            auto it               = tagData.items.find(itemType);
-            std::string text = (it != tagData.items.end()) ? it->second : "";
-
-            if (!text.empty())
-            {
-                TextOutA(hDC, currentX, currentY, text.c_str(),
-                         static_cast<int>(text.length()));
-
-                SIZE textSize;
-                GetTextExtentPoint32A(hDC, text.c_str(),
-                                      static_cast<int>(text.length()),
-                                      &textSize);
-                currentX += textSize.cx;
-
-                bool hasNextContent = false;
-                for (size_t k = elemIdx + 1; k < line.size(); ++k)
-                {
-                    TagItemType nextType = ParseTagItemType(line[k]);
-                    auto nextIt          = tagData.items.find(nextType);
-                    if (nextIt != tagData.items.end() &&
-                        !nextIt->second.empty())
-                    {
-                        hasNextContent = true;
-                        break;
-                    }
-                }
-                if (hasNextContent) { currentX += spaceWidth; }
-            }
-        }
-
-        currentY += lineHeight;
-    }
+    // Draw text content
+    DrawMultiLineTagText(hDC, boxRect, tagData, tagLines, dims.lineHeight,
+                         spaceWidth, textColor);
 
     SelectObject(hDC, oldFont);
     DeleteObject(hFont);
@@ -294,11 +367,7 @@ RECT Tag::DrawTag(HDC hDC,
     tagCenter.x = aircraftScreenPos.x + tagOffsetX;
     tagCenter.y = aircraftScreenPos.y + tagOffsetY;
 
-    HFONT hFont = CreateFontA(FONT_HEIGHT, 0, 0, 0, FONT_WEIGHT, FALSE, FALSE,
-                              FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS,
-                              CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
-                              DEFAULT_PITCH | FF_DONTCARE, FONT_NAME);
-
+    HFONT hFont   = CreateTagFont(hDC);
     HFONT oldFont = (HFONT)SelectObject(hDC, hFont);
 
     SIZE textSize;
@@ -315,34 +384,10 @@ RECT Tag::DrawTag(HDC hDC,
 
     RECT boxRect = {left, top, right, bottom};
 
-    // Draw leader line using Liang-Barsky clipping
-    POINT lineStart, lineEnd;
-    if (LiangBarskyClip(boxRect, aircraftScreenPos, tagCenter, lineStart,
-                        lineEnd))
-    {
-        HPEN linePen =
-            CreatePen(PS_SOLID, CONNECTION_LINE_WIDTH, RGB(255, 255, 255));
-        HPEN oldPen = (HPEN)SelectObject(hDC, linePen);
+    DrawLeaderLine(hDC, aircraftScreenPos, tagCenter, boxRect);
 
-        MoveToEx(hDC, aircraftScreenPos.x, aircraftScreenPos.y, nullptr);
-        LineTo(hDC, lineStart.x, lineStart.y);
+    DrawTagBackground(hDC, boxRect, DEFAULT_TAG_BG_COLOR);
 
-        SelectObject(hDC, oldPen);
-        DeleteObject(linePen);
-    }
-
-    // Draw tag background
-    HBRUSH bgBrush  = CreateSolidBrush(DEFAULT_TAG_BG_COLOR);
-    HBRUSH oldBrush = (HBRUSH)SelectObject(hDC, bgBrush);
-    HPEN oldPen     = (HPEN)SelectObject(hDC, GetStockObject(NULL_PEN));
-
-    Rectangle(hDC, left, top, right + 1, bottom + 1);
-
-    SelectObject(hDC, oldPen);
-    SelectObject(hDC, oldBrush);
-    DeleteObject(bgBrush);
-
-    // Draw text in tag
     SetTextColor(hDC, DEFAULT_TAG_TEXT_COLOR);
     SetBkMode(hDC, TRANSPARENT);
 
@@ -359,11 +404,7 @@ RECT Tag::DrawTag(HDC hDC,
 
 bool Tag::GetTextRect(HDC hDC, const std::string & text, RECT & outRect)
 {
-    HFONT hFont =
-        CreateFontA(FONT_HEIGHT, 0, 0, 0, FONT_WEIGHT, FALSE, FALSE, FALSE,
-                    ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                    DEFAULT_QUALITY, DEFAULT_PITCH, FONT_NAME);
-
+    HFONT hFont   = CreateTagFont(hDC);
     HFONT oldFont = (HFONT)SelectObject(hDC, hFont);
 
     SIZE textSize;
