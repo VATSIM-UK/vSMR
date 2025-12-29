@@ -14,30 +14,30 @@
  */
 enum class TagItemType
 {
-    Callsign,      // callsign: Callsign with freq state
-    AcType,        // actype: Aircraft type
-    ScType,        // sctype: Aircraft type that changes for squawk error
-    SqError,       // sqerror: Squawk error if there is one
-    DepRwy,        // deprwy: Departure runway
-    SepRwy,        // seprwy: Departure runway that changes to speed if speed >
-                   // 25kts
-    ArvRwy,        // arvrwy: Arrival runway
-    SrvRwy,        // srvrwy: Speed that changes to arrival runway if speed <
-                   // 25kts
-    Gate,          // gate: Gate, from scratchpad
-    Sate,          // sate: Gate that changes to speed if speed > 25kts
-    FlightLevel,   // flightlevel: FL/altitude
-    GroundSpeed,   // gs: Ground speed
-    Tendency,      // tendency: Climbing/descending symbol
-    Wake,          // wake: Wake turbulence category
-    GroundStatus,  // groundstatus: Current status
-    SSR,           // ssr/tssr: Squawk code
-    SID,           // asid: Assigned SID
-    ShortSID,      // ssid: Short version of SID
-    Origin,        // origin/dep: Origin aerodrome
-    Dest,          // dest: Destination aerodrome
-    SystemId,      // systemid: System ID for uncorrelated targets
-    UkStand        // uk_stand: UK specific stand
+    Callsign,     // callsign: Callsign with freq state
+    AcType,       // actype: Aircraft type
+    ScType,       // sctype: Aircraft type that changes for squawk error
+    SqError,      // sqerror: Squawk error if there is one
+    DepRwy,       // deprwy: Departure runway
+    SepRwy,       // seprwy: Departure runway that changes to speed if speed >
+                  // 25kts
+    ArvRwy,       // arvrwy: Arrival runway
+    SrvRwy,       // srvrwy: Speed that changes to arrival runway if speed <
+                  // 25kts
+    Gate,         // gate: Gate, from scratchpad
+    Sate,         // sate: Gate that changes to speed if speed > 25kts
+    FlightLevel,  // flightlevel: FL/altitude
+    GroundSpeed,  // gs: Ground speed
+    Tendency,     // tendency: Climbing/descending symbol
+    Wake,         // wake: Wake turbulence category
+    GroundStatus, // groundstatus: Current status
+    SSR,          // ssr/tssr: Squawk code
+    SID,          // asid: Assigned SID
+    ShortSID,     // ssid: Short version of SID
+    Origin,       // origin/dep: Origin aerodrome
+    Dest,         // dest: Destination aerodrome
+    SystemId,     // systemid: System ID for uncorrelated targets
+    UkStand       // uk_stand: UK specific stand
 };
 
 /**
@@ -72,14 +72,14 @@ class Tag
      * @param borderColor Border color for tag (if drawing border)
      */
     static void DrawMultiLineTag(HDC hDC,
-                                  POINT aircraftScreenPos,
-                                  const TagData & tagData,
-                                  const std::vector<TagLine> & tagLines,
-                                  int tagOffsetX,
-                                  int tagOffsetY,
-                                  COLORREF backgroundColor,
-                                  COLORREF textColor,
-                                  COLORREF borderColor = RGB(255, 255, 255));
+                                 POINT aircraftScreenPos,
+                                 const TagData & tagData,
+                                 const std::vector<TagLine> & tagLines,
+                                 int tagOffsetX,
+                                 int tagOffsetY,
+                                 COLORREF backgroundColor,
+                                 COLORREF textColor,
+                                 COLORREF borderColor = RGB(255, 255, 255));
 
     /**
      * Draw a simple single-line tag (for basic testing/fallback)

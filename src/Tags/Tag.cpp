@@ -52,14 +52,8 @@ bool LiangBarskyClip(const RECT & rect,
         else
         {
             double r = q[i] / p[i];
-            if (p[i] < 0.0)
-            {
-                t0 = (t0 > r) ? t0 : r;
-            }
-            else
-            {
-                t1 = (t1 < r) ? t1 : r;
-            }
+            if (p[i] < 0.0) { t0 = (t0 > r) ? t0 : r; }
+            else { t1 = (t1 < r) ? t1 : r; }
 
             if (t0 > t1) return false;
         }
@@ -110,23 +104,23 @@ TagItemType Tag::ParseTagItemType(const std::string & itemName)
 }
 
 void Tag::DrawMultiLineTag(HDC hDC,
-                            POINT aircraftScreenPos,
-                            const TagData & tagData,
-                            const std::vector<TagLine> & tagLines,
-                            int tagOffsetX,
-                            int tagOffsetY,
-                            COLORREF backgroundColor,
-                            COLORREF textColor,
-                            COLORREF borderColor)
+                           POINT aircraftScreenPos,
+                           const TagData & tagData,
+                           const std::vector<TagLine> & tagLines,
+                           int tagOffsetX,
+                           int tagOffsetY,
+                           COLORREF backgroundColor,
+                           COLORREF textColor,
+                           COLORREF borderColor)
 {
     POINT tagCenter;
     tagCenter.x = aircraftScreenPos.x + tagOffsetX;
     tagCenter.y = aircraftScreenPos.y + tagOffsetY;
 
-    HFONT hFont =
-        CreateFontA(FONT_HEIGHT, 0, 0, 0, FONT_WEIGHT, FALSE, FALSE, FALSE,
-                    ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                    ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE, FONT_NAME);
+    HFONT hFont = CreateFontA(FONT_HEIGHT, 0, 0, 0, FONT_WEIGHT, FALSE, FALSE,
+                              FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS,
+                              CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+                              DEFAULT_PITCH | FF_DONTCARE, FONT_NAME);
 
     HFONT oldFont = (HFONT)SelectObject(hDC, hFont);
 
@@ -135,29 +129,30 @@ void Tag::DrawMultiLineTag(HDC hDC,
     GetTextExtentPoint32A(hDC, " ", 1, &spaceSize);
     int spaceWidth = spaceSize.cx;
 
-    int maxLineWidth  = 0;
-    int totalHeight   = 0;
-    int lineHeight    = 0;
+    int maxLineWidth = 0;
+    int totalHeight  = 0;
+    int lineHeight   = 0;
     std::vector<int> lineWidths;
 
     for (const auto & line : tagLines)
     {
-        int lineWidth     = 0;
-        bool hasContent   = false;
-        int elementCount  = 0;
+        int lineWidth    = 0;
+        bool hasContent  = false;
+        int elementCount = 0;
 
         for (const auto & itemName : line)
         {
             TagItemType itemType = ParseTagItemType(itemName);
             auto it              = tagData.items.find(itemType);
-            std::string text     = (it != tagData.items.end()) ? it->second : "";
+            std::string text = (it != tagData.items.end()) ? it->second : "";
 
             if (!text.empty())
             {
                 hasContent = true;
                 SIZE textSize;
                 GetTextExtentPoint32A(hDC, text.c_str(),
-                                      static_cast<int>(text.length()), &textSize);
+                                      static_cast<int>(text.length()),
+                                      &textSize);
                 lineWidth += textSize.cx;
                 lineHeight = textSize.cy; // All lines should have same height
 
@@ -173,7 +168,8 @@ void Tag::DrawMultiLineTag(HDC hDC,
         lineWidths.push_back(lineWidth);
         if (hasContent)
         {
-            maxLineWidth = (maxLineWidth > lineWidth) ? maxLineWidth : lineWidth;
+            maxLineWidth =
+                (maxLineWidth > lineWidth) ? maxLineWidth : lineWidth;
             totalHeight += lineHeight;
         }
     }
@@ -207,7 +203,7 @@ void Tag::DrawMultiLineTag(HDC hDC,
 
     HBRUSH bgBrush  = CreateSolidBrush(backgroundColor);
     HBRUSH oldBrush = (HBRUSH)SelectObject(hDC, bgBrush);
-    HPEN   oldPen   = (HPEN)SelectObject(hDC, GetStockObject(NULL_PEN));
+    HPEN oldPen     = (HPEN)SelectObject(hDC, GetStockObject(NULL_PEN));
 
     Rectangle(hDC, left, top, right + 1, bottom + 1);
 
@@ -246,8 +242,7 @@ void Tag::DrawMultiLineTag(HDC hDC,
             const auto & itemName = line[elemIdx];
             TagItemType itemType  = ParseTagItemType(itemName);
             auto it               = tagData.items.find(itemType);
-            std::string text =
-                (it != tagData.items.end()) ? it->second : "";
+            std::string text = (it != tagData.items.end()) ? it->second : "";
 
             if (!text.empty())
             {
@@ -256,7 +251,8 @@ void Tag::DrawMultiLineTag(HDC hDC,
 
                 SIZE textSize;
                 GetTextExtentPoint32A(hDC, text.c_str(),
-                                      static_cast<int>(text.length()), &textSize);
+                                      static_cast<int>(text.length()),
+                                      &textSize);
                 currentX += textSize.cx;
 
                 bool hasNextContent = false;
@@ -264,7 +260,8 @@ void Tag::DrawMultiLineTag(HDC hDC,
                 {
                     TagItemType nextType = ParseTagItemType(line[k]);
                     auto nextIt          = tagData.items.find(nextType);
-                    if (nextIt != tagData.items.end() && !nextIt->second.empty())
+                    if (nextIt != tagData.items.end() &&
+                        !nextIt->second.empty())
                     {
                         hasNextContent = true;
                         break;
@@ -291,10 +288,10 @@ void Tag::DrawTag(HDC hDC,
     tagCenter.x = aircraftScreenPos.x + tagOffsetX;
     tagCenter.y = aircraftScreenPos.y + tagOffsetY;
 
-    HFONT hFont =
-        CreateFontA(FONT_HEIGHT, 0, 0, 0, FONT_WEIGHT, FALSE, FALSE, FALSE,
-                    ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                    ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE, FONT_NAME);
+    HFONT hFont = CreateFontA(FONT_HEIGHT, 0, 0, 0, FONT_WEIGHT, FALSE, FALSE,
+                              FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS,
+                              CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+                              DEFAULT_PITCH | FF_DONTCARE, FONT_NAME);
 
     HFONT oldFont = (HFONT)SelectObject(hDC, hFont);
 
@@ -331,7 +328,7 @@ void Tag::DrawTag(HDC hDC,
     // Draw tag background
     HBRUSH bgBrush  = CreateSolidBrush(DEFAULT_TAG_BG_COLOR);
     HBRUSH oldBrush = (HBRUSH)SelectObject(hDC, bgBrush);
-    HPEN   oldPen   = (HPEN)SelectObject(hDC, GetStockObject(NULL_PEN));
+    HPEN oldPen     = (HPEN)SelectObject(hDC, GetStockObject(NULL_PEN));
 
     Rectangle(hDC, left, top, right + 1, bottom + 1);
 
