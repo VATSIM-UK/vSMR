@@ -25,10 +25,22 @@ class RadarDisplay : public EuroScopePlugIn::CRadarScreen
                                      POINT pt,
                                      RECT area,
                                      int button);
+    virtual void OnMoveScreenObject(int objectType,
+                                    const char * objectId,
+                                    POINT pt,
+                                    RECT area,
+                                    bool released);
 
     private:
     std::unique_ptr<AircraftRenderer> aircraftRenderer;
     std::unique_ptr<MenuBar> menuBar;
+
+    // Tag offset storage: callsign -> offset from aircraft position
+    std::map<std::string, POINT> tagOffsets;
+
+    // Default tag offset
+    static constexpr int DEFAULT_TAG_OFFSET_X = 40;
+    static constexpr int DEFAULT_TAG_OFFSET_Y = 25;
 
     void HandleMenuBarClick(int menuIndex);
 };

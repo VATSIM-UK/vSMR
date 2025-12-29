@@ -70,8 +70,10 @@ class Tag
      * @param backgroundColor Background color for tag
      * @param textColor Text color for tag
      * @param borderColor Border color for tag (if drawing border)
+     * @return Rectangle containing the drawn tag (for screen object
+     * registration)
      */
-    static void DrawMultiLineTag(HDC hDC,
+    static RECT DrawMultiLineTag(HDC hDC,
                                  POINT aircraftScreenPos,
                                  const TagData & tagData,
                                  const std::vector<TagLine> & tagLines,
@@ -88,8 +90,10 @@ class Tag
      * @param callsign Aircraft callsign to display
      * @param tagOffsetX X offset from aircraft center (pixels)
      * @param tagOffsetY Y offset from aircraft center (pixels)
+     * @return Rectangle containing the drawn tag (for screen object
+     * registration)
      */
-    static void DrawTag(HDC hDC,
+    static RECT DrawTag(HDC hDC,
                         POINT aircraftScreenPos,
                         const std::string & callsign,
                         int tagOffsetX,

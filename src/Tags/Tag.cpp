@@ -103,7 +103,7 @@ TagItemType Tag::ParseTagItemType(const std::string & itemName)
     return TagItemType::Callsign;
 }
 
-void Tag::DrawMultiLineTag(HDC hDC,
+RECT Tag::DrawMultiLineTag(HDC hDC,
                            POINT aircraftScreenPos,
                            const TagData & tagData,
                            const std::vector<TagLine> & tagLines,
@@ -174,7 +174,11 @@ void Tag::DrawMultiLineTag(HDC hDC,
         }
     }
 
-    if (totalHeight == 0) return; // No content to display
+    if (totalHeight == 0)
+    {
+        RECT emptyRect = {0, 0, 0, 0};
+        return emptyRect;
+    }
 
     int boxWidth  = maxLineWidth + (TAG_PADDING * 2);
     int boxHeight = totalHeight + (TAG_PADDING * 2);
@@ -276,9 +280,11 @@ void Tag::DrawMultiLineTag(HDC hDC,
 
     SelectObject(hDC, oldFont);
     DeleteObject(hFont);
+
+    return boxRect;
 }
 
-void Tag::DrawTag(HDC hDC,
+RECT Tag::DrawTag(HDC hDC,
                   POINT aircraftScreenPos,
                   const std::string & callsign,
                   int tagOffsetX,
@@ -336,17 +342,6 @@ void Tag::DrawTag(HDC hDC,
     SelectObject(hDC, oldBrush);
     DeleteObject(bgBrush);
 
-    // Draw tag border (optional - could skip for cleaner look)
-    HPEN boxPen = CreatePen(PS_SOLID, TAG_BOX_LINE_WIDTH, DEFAULT_BORDER_COLOR);
-    oldPen      = (HPEN)SelectObject(hDC, boxPen);
-    oldBrush    = (HBRUSH)SelectObject(hDC, GetStockObject(NULL_BRUSH));
-
-    Rectangle(hDC, left, top, right + 1, bottom + 1);
-
-    SelectObject(hDC, oldPen);
-    SelectObject(hDC, oldBrush);
-    DeleteObject(boxPen);
-
     // Draw text in tag
     SetTextColor(hDC, DEFAULT_TAG_TEXT_COLOR);
     SetBkMode(hDC, TRANSPARENT);
@@ -358,6 +353,8 @@ void Tag::DrawTag(HDC hDC,
 
     SelectObject(hDC, oldFont);
     DeleteObject(hFont);
+
+    return boxRect;
 }
 
 bool Tag::GetTextRect(HDC hDC, const std::string & text, RECT & outRect)

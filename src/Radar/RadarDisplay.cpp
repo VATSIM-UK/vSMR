@@ -2,6 +2,7 @@
 #pragma warning(push, 0)
 #include "EuroScopePlugIn.h"
 #pragma warning(pop)
+#include "Identifiers.hpp"
 #include "Logger.hpp"
 #include "Tag.hpp"
 #include "pathUtils.hpp"
@@ -111,10 +112,23 @@ void RadarDisplay::OnRefresh(HDC hDC, int phase)
                 radarTarget, [this](const EuroScopePlugIn::CPosition & pos)
                 { return ConvertCoordFromPositionToPixel(pos); });
 
-            constexpr int TAG_OFFSET_X = 40;
-            constexpr int TAG_OFFSET_Y = 25;
-            Tag::DrawTag(hDC, aircraftScreenPos, callsign, TAG_OFFSET_X,
-                         TAG_OFFSET_Y);
+            // Get tag offset (use stored offset or default)
+            POINT tagOffset;
+            auto offsetIt = tagOffsets.find(callsign);
+            if (offsetIt != tagOffsets.end()) { tagOffset = offsetIt->second; }
+            else
+            {
+                tagOffset.x = DEFAULT_TAG_OFFSET_X;
+                tagOffset.y = DEFAULT_TAG_OFFSET_Y;
+            }
+
+            // Draw tag and register as draggable screen object
+            RECT tagRect = Tag::DrawTag(hDC, aircraftScreenPos, callsign,
+                                        tagOffset.x, tagOffset.y);
+
+            // Register tag as a screen object for dragging
+            AddScreenObject(SCREEN_OBJECT_TYPE_TAG, callsign.c_str(), tagRect,
+                            true, "");
         }
 
         flightPlan = GetPlugIn()->FlightPlanSelectNext(flightPlan);
@@ -163,6 +177,44 @@ void RadarDisplay::OnClickScreenObject(int objectType,
     {
         int menuIndex = menuBar->OnClick(pt, area);
         if (menuIndex >= 0) { HandleMenuBarClick(menuIndex); }
+    }
+}
+
+void RadarDisplay::OnMoveScreenObject(int objectType,
+                                      const char * objectId,
+                                      POINT pt,
+                                      RECT area,
+                                      bool released)
+{
+    // Handle tag dragging
+    if (objectType == SCREEN_OBJECT_TYPE_TAG)
+    {
+        std::string callsign = objectId;
+
+        // Get the radar target to find its screen position
+        EuroScopePlugIn::CRadarTarget rt =
+            GetPlugIn()->RadarTargetSelect(callsign.c_str());
+
+        if (rt.IsValid())
+        {
+            POINT aircraftScreenPos =
+                ConvertCoordFromPositionToPixel(rt.GetPosition().GetPosition());
+
+            // Calculate center of tag area
+            POINT tagCenter;
+            tagCenter.x = (area.left + area.right) / 2;
+            tagCenter.y = (area.top + area.bottom) / 2;
+
+            // Calculate and store the offset from aircraft to tag center
+            POINT offset;
+            offset.x = tagCenter.x - aircraftScreenPos.x;
+            offset.y = tagCenter.y - aircraftScreenPos.y;
+
+            tagOffsets[callsign] = offset;
+
+            // Request refresh to redraw with new position
+            RequestRefresh();
+        }
     }
 }
 
