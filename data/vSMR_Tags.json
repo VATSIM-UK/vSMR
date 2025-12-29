@@ -1,0 +1,44 @@
+{
+  "tag_definitions": {
+    "departure": {
+      "lines": [
+        ["callsign"],
+        ["actype", "asid", "wake"]
+      ],
+      "background_color": "40,50,200,255",
+      "background_color_on_runway": "40,50,200,255",
+      "text_color": "255,255,255,255"
+    },
+    "arrival": {
+      "lines": [
+        ["callsign"],
+        ["uk_stand", "actype"]
+      ],
+      "background_color": "170,50,50,255",
+      "background_color_on_runway": "170,50,50,255",
+      "text_color": "255,255,255,255"
+    },
+    "airborne": {
+      "lines": [
+        ["callsign"],
+        ["flightlevel"]
+      ],
+      "text_color": "255,255,255,255",
+      "background_color": "0,0,0,0",
+      "background_color_on_runway": "0,0,0,0"
+    },
+    "uncorrelated": {
+      "lines": [
+        ["systemid"]
+      ],
+      "text_color": "255,255,255,255",
+      "background_color": "150,22,135,255",
+      "background_color_on_runway": "0,0,0,0"
+    }
+  },
+  "tag_formatting": {
+    "padding": 2,
+    "line_spacing": 0,
+    "min_width": 80
+  }
+}
