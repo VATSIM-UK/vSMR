@@ -15,30 +15,30 @@ enum class LogLevel
 
 class Logger
 {
-public:
+    public:
     // Singleton access
-    static Logger& getInstance();
-    
-    static void initialise(const std::filesystem::path& filepath);
-    
-    Logger(const Logger&) = delete;
-    Logger& operator=(const Logger&) = delete;
+    static Logger & getInstance();
+
+    static void initialise(const std::filesystem::path & filepath);
+
+    Logger(const Logger &)             = delete;
+    Logger & operator=(const Logger &) = delete;
 
     ~Logger();
 
-    void log(LogLevel level, const std::string& message);
-    void info(const std::string& msg);
-    void warning(const std::string& msg);
-    void error(const std::string& msg);
-    void debug(const std::string& msg);
+    void log(LogLevel level, const std::string & message);
+    void info(const std::string & msg);
+    void warning(const std::string & msg);
+    void error(const std::string & msg);
+    void debug(const std::string & msg);
 
     bool getStatus();
     void startLogger();
     void StopLogger();
 
-private:
+    private:
     Logger() = default;
-    Logger(const std::filesystem::path& filepath);
+    Logger(const std::filesystem::path & filepath);
 
     std::ofstream logFile;
     std::mutex mtx;
