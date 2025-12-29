@@ -27,10 +27,10 @@ jobs:
         conan profile detect --force
       
     - name: Install Deps
-      run: conan install . --profile=profiles/win32-msvc --build=missing
+      run: conan install . --profile=profiles/win32-msvc-22 --build=missing
     
     - name: Build with Conan
-      run: conan build . --profile=profiles/win32-msvc --build=missing
+      run: conan build . --profile=profiles/win32-msvc-22 --build=missing
     
     - name: Upload DLL artifact
       uses: actions/upload-artifact@v6

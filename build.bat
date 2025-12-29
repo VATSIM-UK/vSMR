@@ -1,6 +1,6 @@
 @echo off
 
-conan build . --profile=profiles/win32-msvc --build=missing || ( echo Conan failed & exit /b 1 )
+conan build . --profile=profiles/win32-msvc-26 --build=missing || ( echo Conan failed & exit /b 1 )
 
 
 if "%1"=="-c" (
