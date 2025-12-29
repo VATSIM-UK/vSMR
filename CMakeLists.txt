@@ -38,9 +38,9 @@ target_include_directories(euroscope_interface INTERFACE
 add_subdirectory(src/Logger)
 add_subdirectory(src/Display)
 add_subdirectory(src/Radar)
+add_subdirectory(src/Tags)
 #add_subdirectory(src/ACARS)
 #add_subdirectory(src/RIMCAS)
-#add_subdirectory(src/Tags)
 add_subdirectory(src/Utils)
 
 # ==============================================================================
@@ -93,9 +93,9 @@ target_link_libraries(vSMR
         vSMR_Logger
         vSMR_Display
         vSMR_Radar
+        vSMR_Tags
         #vSMR_ACARS
         #vSMR_RIMCAS
-        #vSMR_Tags
         vSMR_Utils
         ${CMAKE_SOURCE_DIR}/euroscope/lib/EuroScopePlugInDLL.lib
         crypt32

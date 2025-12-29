@@ -3,10 +3,9 @@
 #include "EuroScopePlugIn.h"
 #pragma warning(pop)
 #include "Logger.hpp"
-#include "angleUtils.hpp"
+#include "Tag.hpp"
 #include "pathUtils.hpp"
 
-#include <cmath>
 #include <filesystem>
 
 RadarDisplay::RadarDisplay()
@@ -64,7 +63,8 @@ void RadarDisplay::OnRefresh(HDC hDC, int phase)
 
             // Draw afterglow first (older positions)
             aircraftRenderer->DrawAircraftAfterGlow(
-                hDC, callsign, groundSpeed, [this](const EuroScopePlugIn::CPosition & pos)
+                hDC, callsign, groundSpeed,
+                [this](const EuroScopePlugIn::CPosition & pos)
                 { return ConvertCoordFromPositionToPixel(pos); });
             double heading =
                 radarTarget.GetPosition().GetReportedHeadingTrueNorth();
@@ -104,10 +104,17 @@ void RadarDisplay::OnRefresh(HDC hDC, int phase)
                 }
             }
 
+            POINT aircraftScreenPos = ConvertCoordFromPositionToPixel(radarPos);
+
             aircraftRenderer->DrawAircraftShape(
                 hDC, radarPos, heading, wingspan, length, gearWidth,
                 radarTarget, [this](const EuroScopePlugIn::CPosition & pos)
                 { return ConvertCoordFromPositionToPixel(pos); });
+
+            constexpr int TAG_OFFSET_X = 40;
+            constexpr int TAG_OFFSET_Y = 25;
+            Tag::DrawTag(hDC, aircraftScreenPos, callsign, TAG_OFFSET_X,
+                         TAG_OFFSET_Y);
         }
 
         flightPlan = GetPlugIn()->FlightPlanSelectNext(flightPlan);

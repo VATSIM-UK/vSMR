@@ -15,5 +15,6 @@ target_link_libraries(vSMR_Radar
         euroscope_interface
         vSMR_Logger
         vSMR_Display
+        vSMR_Tags
         vSMR_Utils
 )
