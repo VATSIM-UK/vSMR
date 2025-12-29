@@ -11,20 +11,21 @@ jobs:
     runs-on: windows-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
+    - uses: actions/checkout@v6
     
-    - name: Set up Python
-      uses: actions/setup-python@v6
+    - uses: actions/setup-python@v6
       with:
         python-version: '3.14'
+    
+    - name: Set up MSVC
+      uses: microsoft/setup-msbuild@v2
     
     - name: Install Conan
       run: |
         pip install conan
         conan --version
         conan profile detect --force
-    
+      
     - name: Install Deps
       run: conan install . --profile=profiles/win32-msvc --build=missing
     
