@@ -49,7 +49,8 @@ public:
     string wakeTurbCat = "";
     string airborneFreq = ""; // QSY frequency
     clock_t liftoffTime = 0;
-    bool dismissed = false;
+    bool handedOff = false;    // First click: mark as handed off (green)
+    bool dismissed = false;    // Second click: remove from list
     int groundAltitude = 0;    // Altitude when on ground
     bool timerStarted = false; // Whether timer has begun
   };
