@@ -106,7 +106,7 @@ public:
 
   // Departure Timer Window settings
   bool showDepartureWindow = true;
-  int departureDisplayDuration = 180; // 3 minutes in seconds (default)
+  int departureDisplayDuration = 300; // 5 minutes in seconds (default)
   bool depWindowShowCallsign = true;
   bool depWindowShowDest = true;
   bool depWindowShowAcType = true;

@@ -399,9 +399,9 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     DepartureInfo &info = DepartedAircraft[callsign];
     int currentAltitude = Rt.GetPosition().GetPressureAltitude();
     
-    // Remove aircraft if above 6000 feet
-    if (currentAltitude > 6000) {
-      Logger::info("TrackDeparture: Removing " + callsign + " - above 6000ft (alt=" + std::to_string(currentAltitude) + ")");
+    // Remove aircraft if above 11000 feet
+    if (currentAltitude > 11000) {
+      Logger::info("TrackDeparture: Removing " + callsign + " - above 11000ft (alt=" + std::to_string(currentAltitude) + ")");
       DepartedAircraft.erase(callsign);
       return;
     }
@@ -432,9 +432,9 @@ void CRimcas::UpdateDepartureTimer(int departureDisplayDurationSecs, CRadarScree
       continue;
     }
 
-    // Remove if above 6000 feet
+    // Remove if above 11000 feet
     CRadarTarget rt = instance->GetPlugIn()->RadarTargetSelect(pair.first.c_str());
-    if (rt.IsValid() && rt.GetPosition().GetPressureAltitude() > 6000) {
+    if (rt.IsValid() && rt.GetPosition().GetPressureAltitude() > 11000) {
       toRemove.push_back(pair.first);
       continue;
     }
