@@ -375,12 +375,15 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     info.wakeTurbCat = "";
     info.wakeTurbCat += fp.GetFlightPlanData().GetAircraftWtc();
 
-    info.airborneFreq = fp.GetControllerAssignedData().GetFlightStripAnnotation(8);
-    if (info.airborneFreq.length() == 0) {
-      info.airborneFreq = "QSY";
-    }
-    if (info.airborneFreq.length() > 7) {
-      info.airborneFreq = info.airborneFreq.substr(0, 7);
+    info.airborneFreq = "QSY";
+    const char* nextCtrl = fp.GetCoordinatedNextController();
+    if (strlen(nextCtrl) > 0) {
+      CController ctrl = instance->GetPlugIn()->ControllerSelect(nextCtrl);
+      if (ctrl.IsValid() && ctrl.GetPrimaryFrequency() < 199.0) {
+        char buf[8];
+        sprintf_s(buf, 8, "%.3f", ctrl.GetPrimaryFrequency());
+        info.airborneFreq = buf;
+      }
     }
 
     info.groundAltitude = Rt.GetPosition().GetPressureAltitude();
