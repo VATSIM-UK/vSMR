@@ -11,6 +11,7 @@
 #include <thread>
 #include "SMRRadar.hpp"
 #include "Logger.h"
+#include "QnhTracker.hpp"
 
 #define MY_PLUGIN_NAME      "vSMR Vatsim UK"
 #define MY_PLUGIN_VERSION   "dev"
@@ -24,6 +25,9 @@ using namespace EuroScopePlugIn;
 class CSMRPlugin :
 	public EuroScopePlugIn::CPlugIn
 {
+private:
+	CQnhTracker qnhTracker;
+
 public:
 	CSMRPlugin();
 	virtual ~CSMRPlugin();
@@ -51,5 +55,7 @@ public:
 	//---OnRadarScreenCreated------------------------------------------
 
 	virtual CRadarScreen * OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
+
+	virtual void OnNewMetarReceived(const char *station, const char *metar);
 };
 

@@ -135,6 +135,7 @@
     <ClCompile Include="DataLinkDialog.cpp" />
     <ClCompile Include="HttpHelper.cpp" />
     <ClCompile Include="InsetWindow.cpp" />
+    <ClCompile Include="QnhTracker.cpp" />
     <ClCompile Include="Rimcas.cpp" />
     <ClCompile Include="SMRPlugin.cpp" />
     <ClCompile Include="SMRRadar.cpp" />
@@ -164,6 +165,7 @@
     <ClInclude Include="rapidjson\writer.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Rimcas.hpp" />
+    <ClInclude Include="QnhTracker.hpp" />
     <ClInclude Include="SMRPlugin.hpp" />
     <ClInclude Include="SMRRadar.hpp" />
     <ClInclude Include="stdafx.h" />

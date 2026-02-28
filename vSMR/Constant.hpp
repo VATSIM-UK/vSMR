@@ -24,6 +24,10 @@ const int TAG_FUNC_DATALINK_VOICE = 547;
 const int TAG_FUNC_DATALINK_RESET = 548;
 const int TAG_FUNC_DATALINK_MESSAGE = 549;
 
+const int TAG_ITEM_QNH = 451;
+const int TAG_FUNC_QNH_UPDATE = 551;
+const int TAG_FUNC_QNH_RESET = 552;
+
 inline static bool startsWith(const char *pre, const char *str) {
   size_t lenpre = strlen(pre), lenstr = strlen(str);
   return lenstr < lenpre ? false : strncmp(pre, str, lenpre) == 0;
