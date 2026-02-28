@@ -301,7 +301,7 @@ CSMRPlugin::CSMRPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PL
 {
 
 	Logger::DLL_PATH = "";
-	Logger::ENABLED = true;
+	Logger::ENABLED = false;
 
 	//
 	// Adding the SMR Display type
