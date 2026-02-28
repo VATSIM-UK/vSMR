@@ -3250,7 +3250,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
 
       // Draw each enabled column
       if (depWindowShowCallsign) {
-        dc.TextOutA(rowX, rowY, info.callsign.c_str());
+        string displayCallsign = info.callsign;
+        if (info.timerStarted) {
+          displayCallsign = "^ " + displayCallsign;
+        }
+        dc.TextOutA(rowX, rowY, displayCallsign.c_str());
         rowX += colCallsignWidth + colPadding;
       }
 
