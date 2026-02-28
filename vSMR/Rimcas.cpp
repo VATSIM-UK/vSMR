@@ -356,7 +356,11 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   string runwayArea = GetAcInRunwayArea(Rt, instance);
   bool onRunway = (runwayArea != string_false);
 
-  if (onRunway && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
+  // Only add if the aircraft is on its assigned departure runway, not crossing another
+  string depRwy = fp.GetFlightPlanData().GetDepartureRwy();
+  bool onDepartureRunway = onRunway && depRwy.length() > 0 && runwayArea.find(depRwy) != string::npos;
+
+  if (onDepartureRunway && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
     DepartureInfo info;
     info.callsign = callsign;
     if (info.callsign.length() > 8) {
