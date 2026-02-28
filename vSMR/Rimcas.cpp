@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Rimcas.hpp"
+#include "SMRRadar.hpp"
 #include "Logger.h"
 
 CRimcas::CRimcas() {}
@@ -380,13 +381,11 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     info.wakeTurbCat += fp.GetFlightPlanData().GetAircraftWtc();
 
     info.airborneFreq = "QSY";
-    const char* nextCtrl = fp.GetCoordinatedNextController();
-    if (strlen(nextCtrl) > 0) {
-      CController ctrl = instance->GetPlugIn()->ControllerSelect(nextCtrl);
-      if (ctrl.IsValid() && ctrl.GetPrimaryFrequency() < 199.0) {
-        char buf[8];
-        sprintf_s(buf, 8, "%.3f", ctrl.GetPrimaryFrequency());
-        info.airborneFreq = buf;
+    // Get frequency from UKCP integration socket
+    if (SMRPluginSharedData::ukcpIntegration != nullptr) {
+      std::string ukcpFreq = SMRPluginSharedData::ukcpIntegration->GetDepartureFrequency(callsign);
+      if (!ukcpFreq.empty()) {
+        info.airborneFreq = ukcpFreq;
       }
     }
 
@@ -401,6 +400,15 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   // Update and start timer once aircraft is airborne
   if (DepartedAircraft.find(callsign) != DepartedAircraft.end()) {
     DepartureInfo &info = DepartedAircraft[callsign];
+
+    // Re-check UKCP frequency if we don't have one yet
+    if (info.airborneFreq == "QSY" && SMRPluginSharedData::ukcpIntegration != nullptr) {
+      std::string ukcpFreq = SMRPluginSharedData::ukcpIntegration->GetDepartureFrequency(callsign);
+      if (!ukcpFreq.empty()) {
+        info.airborneFreq = ukcpFreq;
+      }
+    }
+
     int currentAltitude = Rt.GetPosition().GetPressureAltitude();
     
     // Remove aircraft if above 11000 feet

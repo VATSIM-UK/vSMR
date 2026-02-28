@@ -17,6 +17,7 @@
 #include "InsetWindow.h"
 #include "Logger.h"
 #include "Rimcas.hpp"
+#include "UKCPIntegration.hpp"
 #include <asio/io_service.hpp>
 #include <filesystem>
 #include <iostream>
@@ -37,6 +38,7 @@ static vector<string> ManuallyCorrelated;
 
 namespace SMRPluginSharedData {
 static asio::io_service io_service;
+extern UKCPIntegration* ukcpIntegration; // The TCP handler is a shared resource
 }
 
 using namespace SMRSharedData;

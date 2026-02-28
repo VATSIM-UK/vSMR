@@ -334,6 +334,12 @@ CSMRPlugin::CSMRPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PL
 	DllPath = DllPathFile;
 	DllPath.resize(DllPath.size() - strlen("vSMR.dll"));
 	Logger::DLL_PATH = DllPath;
+
+	// Start UKCP integration socket client
+	if (SMRPluginSharedData::ukcpIntegration == nullptr) {
+		SMRPluginSharedData::ukcpIntegration = new UKCPIntegration();
+	}
+	SMRPluginSharedData::ukcpIntegration->Start();
 }
 
 CSMRPlugin::~CSMRPlugin()
@@ -350,6 +356,13 @@ CSMRPlugin::~CSMRPlugin()
 	{
 		io_service.stop();
 		//vStripsThread.join();
+
+		// Stop UKCP integration
+		if (SMRPluginSharedData::ukcpIntegration != nullptr) {
+			SMRPluginSharedData::ukcpIntegration->Stop();
+			delete SMRPluginSharedData::ukcpIntegration;
+			SMRPluginSharedData::ukcpIntegration = nullptr;
+		}
 	}
 	catch (std::exception& e)
 	{
