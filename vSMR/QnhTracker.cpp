@@ -5,7 +5,7 @@
 
 void CQnhTracker::processMetar(const char *station, const char *metar)
 {
-	if ((metar = std::strstr(metar, " Q")))
+	if ((metar = std::strstr(metar, " Q")) && std::strlen(metar) >= 6)
 	{
 		metar += 4;
 
