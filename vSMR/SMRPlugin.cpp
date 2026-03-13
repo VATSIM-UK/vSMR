@@ -311,6 +311,10 @@ CSMRPlugin::CSMRPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PL
 	RegisterTagItemType("Datalink clearance", TAG_ITEM_DATALINK_STS);
 	RegisterTagItemFunction("Datalink menu", TAG_FUNC_DATALINK_MENU);
 
+	RegisterTagItemType("Acknowledged QNH", TAG_ITEM_QNH);
+	RegisterTagItemFunction("Update acknowledged QNH", TAG_FUNC_QNH_UPDATE);
+	RegisterTagItemFunction("Reset acknowledged QNH", TAG_FUNC_QNH_RESET);
+
 	messageId = rand() % 10000 + 1789;
 
 	timer = clock();
@@ -412,7 +416,6 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 }
 
 void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int * pColorCode, COLORREF * pRGB, double * pFontSize) {
-
 	if (ItemCode == TAG_ITEM_DATALINK_STS) {
 		if (FlightPlan.IsValid()) {
 			if (std::find(AircraftDemandingClearance.begin(), AircraftDemandingClearance.end(), FlightPlan.GetCallsign()) != AircraftDemandingClearance.end()) {
@@ -453,14 +456,31 @@ void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, 
 			}
 		}
 	}
+
+	if (ItemCode == TAG_ITEM_QNH && FlightPlan.IsValid()) {
+		switch (qnhTracker.getReceivedQnh(FlightPlan.GetCallsign(), FlightPlan.GetFlightPlanData().GetOrigin(), sItemString)) {
+		case CQnhTracker::ReceivedQnh::None:
+			*pColorCode = TAG_COLOR_DEFAULT;
+			strcpy_s(sItemString, 16, "-");
+			break;
+
+		case CQnhTracker::ReceivedQnh::Latest:
+			*pColorCode = TAG_COLOR_REDUNDANT;
+			break;
+
+		case CQnhTracker::ReceivedQnh::Stale:
+			*pColorCode = TAG_COLOR_INFORMATION;
+			break;
+		}
+	}
 }
 
 void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area)
 {
+	CFlightPlan FlightPlan = FlightPlanSelectASEL();
 
-	if (FunctionId == TAG_FUNC_DATALINK_MENU) {
-		CFlightPlan FlightPlan = FlightPlanSelectASEL();
-
+	switch (FunctionId) {
+	case TAG_FUNC_DATALINK_MENU: {
 		bool menu_is_datalink = true;
 
 		if (FlightPlan.IsValid()) {
@@ -476,11 +496,11 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 		AddPopupListElement("Voice", "", TAG_FUNC_DATALINK_VOICE, false, 2, menu_is_datalink);
 		AddPopupListElement("Reset", "", TAG_FUNC_DATALINK_RESET, false, 2, false, true);
 		AddPopupListElement("Close", "", EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, false, 2, false, true);
+
+		break;
 	}
 
-	if (FunctionId == TAG_FUNC_DATALINK_RESET) {
-		CFlightPlan FlightPlan = FlightPlanSelectASEL();
-
+	case TAG_FUNC_DATALINK_RESET:
 		if (FlightPlan.IsValid()) {
 			if (std::find(AircraftDemandingClearance.begin(), AircraftDemandingClearance.end(), FlightPlan.GetCallsign()) != AircraftDemandingClearance.end()) {
 				AircraftDemandingClearance.erase(std::remove(AircraftDemandingClearance.begin(), AircraftDemandingClearance.end(), FlightPlan.GetCallsign()), AircraftDemandingClearance.end());
@@ -501,22 +521,20 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 				PendingMessages.erase(FlightPlan.GetCallsign());
 			}
 		}
-	}
 
-	if (FunctionId == TAG_FUNC_DATALINK_STBY) {
-		CFlightPlan FlightPlan = FlightPlanSelectASEL();
+		break;
 
+	case TAG_FUNC_DATALINK_STBY:
 		if (FlightPlan.IsValid()) {
 			AircraftStandby.push_back(FlightPlan.GetCallsign());
 			createPlainCpdlcMessage("STANDBY", "NE");
 			tdest = FlightPlan.GetCallsign();
 			_beginthread(sendDatalinkMessage, 0, NULL);
 		}
-	}
 
-	if (FunctionId == TAG_FUNC_DATALINK_MESSAGE) {
-		CFlightPlan FlightPlan = FlightPlanSelectASEL();
+		break;
 
+	case TAG_FUNC_DATALINK_MESSAGE:
 		if (FlightPlan.IsValid()) {
 			AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
@@ -539,11 +557,10 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			tdest = FlightPlan.GetCallsign();
 			_beginthread(sendDatalinkMessage, 0, NULL);
 		}
-	}
 
-	if (FunctionId == TAG_FUNC_DATALINK_VOICE) {
-		CFlightPlan FlightPlan = FlightPlanSelectASEL();
+		break;
 
+	case TAG_FUNC_DATALINK_VOICE:
 		if (FlightPlan.IsValid()) {
 			createPlainCpdlcMessage("UNABLE - CALL ON FREQ", "R");
 			tdest = FlightPlan.GetCallsign();
@@ -560,11 +577,9 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			_beginthread(sendDatalinkMessage, 0, NULL);
 		}
 
-	}
+		break;
 
-	if (FunctionId == TAG_FUNC_DATALINK_CONFIRM) {
-		CFlightPlan FlightPlan = FlightPlanSelectASEL();
-
+	case TAG_FUNC_DATALINK_CONFIRM:
 		if (FlightPlan.IsValid()) {
 
 			AFX_MANAGE_STATE(AfxGetStaticModuleState());
@@ -629,6 +644,19 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 
 		}
 
+		break;
+
+	case TAG_FUNC_QNH_UPDATE:
+		if (FlightPlan.IsValid())
+			qnhTracker.updateReceivedQnh(FlightPlan.GetCallsign(), FlightPlan.GetFlightPlanData().GetOrigin());
+
+		break;
+
+	case TAG_FUNC_QNH_RESET:
+		if (FlightPlan.IsValid())
+			qnhTracker.resetReceivedQnh(FlightPlan.GetCallsign());
+
+		break;
 	}
 }
 
@@ -642,6 +670,8 @@ void CSMRPlugin::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 
 	if (std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(), rt.GetSystemID()) != ManuallyCorrelated.end())
 		ManuallyCorrelated.erase(std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(), rt.GetSystemID()));
+
+	qnhTracker.resetReceivedQnh(FlightPlan.GetCallsign());
 }
 
 void CSMRPlugin::OnTimer(int Counter)
@@ -692,6 +722,10 @@ CRadarScreen * CSMRPlugin::OnRadarScreenCreated(const char * sDisplayName, bool 
 	}
 
 	return NULL;
+}
+
+void CSMRPlugin::OnNewMetarReceived(const char *station, const char *metar) {
+	qnhTracker.processMetar(station, metar);
 }
 
 //---EuroScopePlugInExit-----------------------------------------------
