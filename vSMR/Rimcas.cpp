@@ -235,8 +235,7 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
 
     bool isAnotherAcApproaching = ApproachingAircrafts.count(it->first) > 0;
 
-    if (AcOnRunway.count(it->first) > 1 || isOnClosedRunway ||
-        isAnotherAcApproaching) {
+    if (AcOnRunway.count(it->first) > 1 || isOnClosedRunway || (AcOnRunway.count(it->first) > 0 && isAnotherAcApproaching)) {
 
       auto AcOnRunwayRange = AcOnRunway.equal_range(it->first);
 
