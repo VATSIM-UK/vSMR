@@ -401,8 +401,8 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   if (DepartedAircraft.find(callsign) != DepartedAircraft.end()) {
     DepartureInfo &info = DepartedAircraft[callsign];
 
-    // Re-check UKCP frequency if we don't have one yet
-    if (info.airborneFreq == "QSY" && SMRPluginSharedData::ukcpIntegration != nullptr) {
+    // (always check for updates)
+    if (SMRPluginSharedData::ukcpIntegration != nullptr) {
       std::string ukcpFreq = SMRPluginSharedData::ukcpIntegration->GetDepartureFrequency(callsign);
       if (!ukcpFreq.empty()) {
         info.airborneFreq = ukcpFreq;
