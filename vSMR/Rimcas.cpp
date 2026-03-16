@@ -244,6 +244,59 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
         if (isOnClosedRunway) {
           AcColor[it2->second] = StageTwo;
         } else {
+          // Get this aircraft's runway (try departure first, then arrival)
+          CFlightPlan fp1 = instance->GetPlugIn()->FlightPlanSelect(it2->second.c_str());
+          string ac1Runway = "";
+          if (fp1.IsValid()) {
+            ac1Runway = fp1.GetFlightPlanData().GetDepartureRwy();
+            if (ac1Runway.empty()) {
+              ac1Runway = fp1.GetFlightPlanData().GetArrivalRwy();
+            }
+          }
+          
+          // Check if there's another aircraft on the same runway (on runway or approaching)
+          bool hasConflictingAircraft = false;
+          for (auto it3 = AcOnRunwayRange.first; it3 != AcOnRunwayRange.second; ++it3) {
+            if (it2->second == it3->second)
+              continue;
+              
+            CFlightPlan fp2 = instance->GetPlugIn()->FlightPlanSelect(it3->second.c_str());
+            string ac2Runway = "";
+            if (fp2.IsValid()) {
+              ac2Runway = fp2.GetFlightPlanData().GetDepartureRwy();
+              if (ac2Runway.empty()) {
+                ac2Runway = fp2.GetFlightPlanData().GetArrivalRwy();
+              }
+            }
+            
+            // Only count as conflict if on same runway (or runway unknown)
+            if (ac1Runway.empty() || ac2Runway.empty() || ac1Runway == ac2Runway) {
+              hasConflictingAircraft = true;
+              break;
+            }
+          }
+          
+          // Also check for approaching aircraft on the same runway
+          if (!hasConflictingAircraft) {
+            auto ApproachingRange = ApproachingAircrafts.equal_range(it->first);
+            for (auto it3 = ApproachingRange.first; it3 != ApproachingRange.second; ++it3) {
+              CFlightPlan fpApproaching = instance->GetPlugIn()->FlightPlanSelect(it3->second.c_str());
+              string approachingRunway = "";
+              if (fpApproaching.IsValid()) {
+                approachingRunway = fpApproaching.GetFlightPlanData().GetArrivalRwy();
+              }
+              
+              // Check if approaching aircraft is on the same runway
+              if (approachingRunway.empty() || ac1Runway.empty() || ac1Runway == approachingRunway) {
+                hasConflictingAircraft = true;
+                break;
+              }
+            }
+          }
+          
+          if (!hasConflictingAircraft)
+            continue;  // No conflict with this aircraft, skip
+          
           if (instance->GetPlugIn()
                   ->RadarTargetSelect(it2->second.c_str())
                   .GetGS() > threshold) {
@@ -251,14 +304,31 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
             // the aircraft is going towards any aircraft thats on the runway
             // if not, we don't display the warning
             bool triggerStageTwo = false;
+            string closingAircraft = "";  // Track which aircraft we're closing on
             CRadarTarget rd1 =
                 instance->GetPlugIn()->RadarTargetSelect(it2->second.c_str());
             CRadarTargetPositionData currentRd1 = rd1.GetPosition();
+            
             for (map<string, string>::iterator it3 = AcOnRunwayRange.first;
                  it3 != AcOnRunwayRange.second; ++it3) {
-              CRadarTarget rd2 =
-                  instance->GetPlugIn()->RadarTargetSelect(it3->second.c_str());
-
+              if (it2->second == it3->second)
+                continue;  // Skip comparing aircraft with itself
+                
+              // Get the runway designation for aircraft 2 (try departure first, then arrival)
+              CFlightPlan fp2 = instance->GetPlugIn()->FlightPlanSelect(it3->second.c_str());
+              string ac2Runway = "";
+              if (fp2.IsValid()) {
+                ac2Runway = fp2.GetFlightPlanData().GetDepartureRwy();
+                if (ac2Runway.empty()) {
+                  ac2Runway = fp2.GetFlightPlanData().GetArrivalRwy();
+                }
+              }
+              
+              // Only check for collision if on the same runway
+              if (!ac1Runway.empty() && !ac2Runway.empty() && ac1Runway != ac2Runway)
+                continue;
+              
+              CRadarTarget rd2 = instance->GetPlugIn()->RadarTargetSelect(it3->second.c_str());
               double currentDist = currentRd1.GetPosition().DistanceTo(
                   rd2.GetPosition().GetPosition());
               double oldDist =
@@ -269,12 +339,51 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
 
               if (currentDist < oldDist) {
                 triggerStageTwo = true;
+                closingAircraft = it3->second;  // Remember which aircraft we're closing on
                 break;
               }
             }
+            
+            // Also check against approaching aircraft
+            if (!triggerStageTwo) {
+              auto ApproachingRange = ApproachingAircrafts.equal_range(it->first);
+              for (auto it3 = ApproachingRange.first; it3 != ApproachingRange.second; ++it3) {
+                CFlightPlan fpApproaching = instance->GetPlugIn()->FlightPlanSelect(it3->second.c_str());
+                string approachingRunway = "";
+                if (fpApproaching.IsValid()) {
+                  approachingRunway = fpApproaching.GetFlightPlanData().GetArrivalRwy();
+                }
+                
+                // Only check for collision if on the same runway
+                if (!ac1Runway.empty() && !approachingRunway.empty() && ac1Runway != approachingRunway)
+                  continue;
+                
+                CRadarTarget rd2 = instance->GetPlugIn()->RadarTargetSelect(it3->second.c_str());
+                double currentDist = currentRd1.GetPosition().DistanceTo(
+                    rd2.GetPosition().GetPosition());
+                double oldDist =
+                    rd1.GetPreviousPosition(currentRd1)
+                        .GetPosition()
+                        .DistanceTo(rd2.GetPreviousPosition(rd2.GetPosition())
+                                        .GetPosition());
 
-            if (triggerStageTwo)
+                if (currentDist < oldDist) {
+                  triggerStageTwo = true;
+                  closingAircraft = it3->second;
+                  break;
+                }
+              }
+            }
+
+            if (triggerStageTwo) {
               AcColor[it2->second] = StageTwo;
+              // Also set the aircraft ahead to Stage 2
+              if (!closingAircraft.empty()) {
+                AcColor[closingAircraft] = StageTwo;
+              }
+            } else {
+              AcColor[it2->second] = StageOne;
+            }
           } else {
             AcColor[it2->second] = StageOne;
           }
@@ -282,11 +391,78 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
       }
 
       for (auto &ac : ApproachingAircrafts) {
-        if (ac.first == it->first && AcOnRunway.count(it->first) > 1)
-          AcColor[ac.second] = StageOne;
-
-        if (ac.first == it->first && isOnClosedRunway)
+        if (ac.first == it->first && isOnClosedRunway) {
           AcColor[ac.second] = StageTwo;
+          continue;
+        }
+        
+        if (ac.first == it->first && AcOnRunway.count(it->first) > 0) {
+          // Check if approaching aircraft is on the same runway as aircraft on runway
+          CFlightPlan fpApproaching = instance->GetPlugIn()->FlightPlanSelect(ac.second.c_str());
+          string approachingRunway = "";
+          if (fpApproaching.IsValid()) {
+            approachingRunway = fpApproaching.GetFlightPlanData().GetArrivalRwy();
+          }
+          
+          // Compare with aircraft on the runway
+          auto AcOnRunwayRange = AcOnRunway.equal_range(it->first);
+          bool sameRunwayConflict = false;
+          
+          if (approachingRunway.empty()) {
+            // If we don't know the approaching runway, assume conflict for safety
+            sameRunwayConflict = true;
+          } else {
+            for (auto it3 = AcOnRunwayRange.first; it3 != AcOnRunwayRange.second; ++it3) {
+              CFlightPlan fpOnRunway = instance->GetPlugIn()->FlightPlanSelect(it3->second.c_str());
+              string onRunwayRunway = "";
+              if (fpOnRunway.IsValid()) {
+                onRunwayRunway = fpOnRunway.GetFlightPlanData().GetDepartureRwy();
+                if (onRunwayRunway.empty()) {
+                  onRunwayRunway = fpOnRunway.GetFlightPlanData().GetArrivalRwy();
+                }
+              }
+              
+              if (onRunwayRunway.empty() || approachingRunway == onRunwayRunway) {
+                sameRunwayConflict = true;
+                break;
+              }
+            }
+          }
+          
+          if (sameRunwayConflict) {
+            // Determine alert level based on time to touchdown
+            // Check TimeTable for approaching aircraft to get estimated time to runway
+            bool isWithin15Seconds = false;
+            if (TimeTable.find(it->first) != TimeTable.end()) {
+              auto &timeTableForRunway = TimeTable[it->first];
+              for (auto &entry : timeTableForRunway) {
+                if (entry.second.callsign == ac.second && entry.first <= 15) {
+                  isWithin15Seconds = true;
+                  break;
+                }
+              }
+            }
+            
+            if (isWithin15Seconds) {
+              AcColor[ac.second] = StageTwo;
+            } else {
+              AcColor[ac.second] = StageOne;
+            }
+            
+            // Aircraft on the runway also get alerts if there's an approaching aircraft
+            auto AcOnRunwayRange = AcOnRunway.equal_range(it->first);
+            for (auto it3 = AcOnRunwayRange.first; it3 != AcOnRunwayRange.second; ++it3) {
+              // Set at least Stage 1
+              if (AcColor.find(it3->second) == AcColor.end() || AcColor[it3->second] == NoAlert) {
+                AcColor[it3->second] = StageOne;
+              }
+              // Upgrade to Stage 2 if approaching is within 15 seconds
+              if (isWithin15Seconds && AcColor[it3->second] != StageTwo) {
+                AcColor[it3->second] = StageTwo;
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -356,11 +532,13 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   string runwayArea = GetAcInRunwayArea(Rt, instance);
   bool onRunway = (runwayArea != string_false);
 
-  // Only add if the aircraft is on its assigned departure runway, not crossing another
+  // Only add if the aircraft is on its assigned runway, not crossing another
   string depRwy = fp.GetFlightPlanData().GetDepartureRwy();
-  bool onDepartureRunway = onRunway && depRwy.length() > 0 && runwayArea.find(depRwy) != string::npos;
+  string arrRwy = depRwy.empty() ? fp.GetFlightPlanData().GetArrivalRwy() : "";
+  string assignedRwy = depRwy.empty() ? arrRwy : depRwy;
+  bool onAssignedRunway = onRunway && assignedRwy.length() > 0 && runwayArea.find(assignedRwy) != string::npos;
 
-  if (onDepartureRunway && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
+  if (onAssignedRunway && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
     DepartureInfo info;
     info.callsign = callsign;
     if (info.callsign.length() > 8) {
