@@ -814,12 +814,19 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char *sObjectId,
                                getActiveAirport().c_str());
   }
 
-  // Handle click on QSY to dismiss the aircraft
+  // Handle click on QSY - two stage: first marks handed off (green), second dismisses
   if (ObjectType == RIMCAS_DEP_WINDOW_QSY) {
     string idStr(sObjectId);
     if (idStr.length() > 4 && idStr.substr(0, 4) == "QSY_") {
       string callsign = idStr.substr(4);
-      RimcasInstance->DismissDeparture(callsign);
+      auto it = RimcasInstance->DepartedAircraft.find(callsign);
+      if (it != RimcasInstance->DepartedAircraft.end()) {
+        if (!it->second.handedOff) {
+          it->second.handedOff = true;
+        } else {
+          RimcasInstance->DismissDeparture(callsign);
+        }
+      }
       RequestRefresh();
     }
   }
@@ -3242,7 +3249,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
 
       // Draw each enabled column
       if (depWindowShowCallsign) {
-        dc.TextOutA(rowX, rowY, info.callsign.c_str());
+        string displayCallsign = info.callsign;
+        if (info.timerStarted) {
+          displayCallsign = "^ " + displayCallsign;
+        }
+        dc.TextOutA(rowX, rowY, displayCallsign.c_str());
         rowX += colCallsignWidth + colPadding;
       }
 
@@ -3271,9 +3282,14 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       if (depWindowShowFreq) {
         CRect qsyRect = {rowX, rowY, rowX + colFreqWidth, rowY + TextHeight};
         
-        // Draw box around QSY button
-        CPen ButtonPen(PS_SOLID, 1, RGB(100, 100, 100));
+        // Draw box around QSY button - bright green fill if handed off
+        COLORREF boxColor = info.handedOff ? RGB(0, 255, 0) : RGB(100, 100, 100);
+        CPen ButtonPen(PS_SOLID, 1, boxColor);
         CPen *oldPen = dc.SelectObject(&ButtonPen);
+        if (info.handedOff) {
+          CBrush greenBrush(RGB(0, 190, 0));
+          dc.FillRect(&qsyRect, &greenBrush);
+        }
         dc.Rectangle(&qsyRect);
         dc.SelectObject(oldPen);
         
@@ -3281,10 +3297,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
         int textWidth = dc.GetTextExtent(info.airborneFreq.c_str()).cx;
         int qsyX = rowX + colFreqWidth - textWidth - 2; // -2 for padding from edge
         dc.TextOutA(qsyX, rowY, info.airborneFreq.c_str());
-        // Make QSY clickable to dismiss
+        // Make QSY clickable - first click hands off, second dismisses
         string qsyKey = "QSY_" + info.callsign;
+        const char* tooltip = info.handedOff ? "Click to dismiss" : "Click to mark handed off";
         AddScreenObject(RIMCAS_DEP_WINDOW_QSY, qsyKey.c_str(), qsyRect,
-                        true, "Click to dismiss");
+                        true, tooltip);
         rowX += colFreqWidth + colPadding;
       }
 

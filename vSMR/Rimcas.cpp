@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Rimcas.hpp"
+#include "SMRRadar.hpp"
 #include "Logger.h"
 
 CRimcas::CRimcas() {}
@@ -234,8 +235,7 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
 
     bool isAnotherAcApproaching = ApproachingAircrafts.count(it->first) > 0;
 
-    if (AcOnRunway.count(it->first) > 1 || isOnClosedRunway ||
-        isAnotherAcApproaching) {
+    if (AcOnRunway.count(it->first) > 1 || isOnClosedRunway || (AcOnRunway.count(it->first) > 0 && isAnotherAcApproaching)) {
 
       auto AcOnRunwayRange = AcOnRunway.equal_range(it->first);
 
@@ -356,7 +356,11 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   string runwayArea = GetAcInRunwayArea(Rt, instance);
   bool onRunway = (runwayArea != string_false);
 
-  if (onRunway && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
+  // Only add if the aircraft is on its assigned departure runway, not crossing another
+  string depRwy = fp.GetFlightPlanData().GetDepartureRwy();
+  bool onDepartureRunway = onRunway && depRwy.length() > 0 && runwayArea.find(depRwy) != string::npos;
+
+  if (onDepartureRunway && DepartedAircraft.find(callsign) == DepartedAircraft.end()) {
     DepartureInfo info;
     info.callsign = callsign;
     if (info.callsign.length() > 8) {
@@ -375,12 +379,13 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
     info.wakeTurbCat = "";
     info.wakeTurbCat += fp.GetFlightPlanData().GetAircraftWtc();
 
-    info.airborneFreq = fp.GetControllerAssignedData().GetFlightStripAnnotation(8);
-    if (info.airborneFreq.length() == 0) {
-      info.airborneFreq = "QSY";
-    }
-    if (info.airborneFreq.length() > 7) {
-      info.airborneFreq = info.airborneFreq.substr(0, 7);
+    info.airborneFreq = "QSY";
+    // Get frequency from UKCP integration socket
+    if (SMRPluginSharedData::ukcpIntegration != nullptr) {
+      std::string ukcpFreq = SMRPluginSharedData::ukcpIntegration->GetDepartureFrequency(callsign);
+      if (!ukcpFreq.empty()) {
+        info.airborneFreq = ukcpFreq;
+      }
     }
 
     info.groundAltitude = Rt.GetPosition().GetPressureAltitude();
@@ -394,11 +399,20 @@ void CRimcas::TrackDeparture(CRadarTarget Rt, CFlightPlan fp,
   // Update and start timer once aircraft is airborne
   if (DepartedAircraft.find(callsign) != DepartedAircraft.end()) {
     DepartureInfo &info = DepartedAircraft[callsign];
+
+    // (always check for updates)
+    if (SMRPluginSharedData::ukcpIntegration != nullptr) {
+      std::string ukcpFreq = SMRPluginSharedData::ukcpIntegration->GetDepartureFrequency(callsign);
+      if (!ukcpFreq.empty()) {
+        info.airborneFreq = ukcpFreq;
+      }
+    }
+
     int currentAltitude = Rt.GetPosition().GetPressureAltitude();
     
-    // Remove aircraft if above 6000 feet
-    if (currentAltitude > 6000) {
-      Logger::info("TrackDeparture: Removing " + callsign + " - above 6000ft (alt=" + std::to_string(currentAltitude) + ")");
+    // Remove aircraft if above 11000 feet
+    if (currentAltitude > 11000) {
+      Logger::info("TrackDeparture: Removing " + callsign + " - above 11000ft (alt=" + std::to_string(currentAltitude) + ")");
       DepartedAircraft.erase(callsign);
       return;
     }
@@ -429,9 +443,9 @@ void CRimcas::UpdateDepartureTimer(int departureDisplayDurationSecs, CRadarScree
       continue;
     }
 
-    // Remove if above 6000 feet
+    // Remove if above 11000 feet
     CRadarTarget rt = instance->GetPlugIn()->RadarTargetSelect(pair.first.c_str());
-    if (rt.IsValid() && rt.GetPosition().GetPressureAltitude() > 6000) {
+    if (rt.IsValid() && rt.GetPosition().GetPressureAltitude() > 11000) {
       toRemove.push_back(pair.first);
       continue;
     }
