@@ -12,7 +12,8 @@ EXTENSIONS = {".c", ".cpp", ".h", ".hpp"}
 SKIP_DIRS = {
     ".git",
     "build",
-    "euroscope"
+    "euroscope",
+    "_ref"
 
 }
 

@@ -8,7 +8,7 @@ class vSMR(ConanFile):
     generators = "CMakeDeps"
 
     def requirements(self):
-        self.requires("rapidjson/1.1.0")
+        self.requires("nlohmann_json/3.11.3")
 
     def build_requirements(self):
         self.tool_requires("cmake/[>3.20.0]")

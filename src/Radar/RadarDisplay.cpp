@@ -11,7 +11,8 @@
 
 RadarDisplay::RadarDisplay()
     : aircraftRenderer(std::make_unique<AircraftRenderer>()),
-      menuBar(std::make_unique<MenuBar>())
+      menuBar(std::make_unique<MenuBar>()),
+      tagProfileManager(std::make_unique<TagProfileManager>())
 {
     // Load aircraft data
     std::filesystem::path dataPath =
@@ -20,6 +21,15 @@ RadarDisplay::RadarDisplay()
     {
         Logger::getInstance().warning("Failed to load aircraft data from: " +
                                       dataPath.string());
+    }
+
+    // Load tag profiles
+    std::filesystem::path tagProfilePath =
+        pathUtils::getDllPath() / "vSMR_Tags.json";
+    if (!tagProfileManager->Initialize(tagProfilePath.string()))
+    {
+        Logger::getInstance().warning("Failed to load tag profiles from: " +
+                                      tagProfilePath.string());
     }
 }
 
@@ -43,18 +53,24 @@ void RadarDisplay::OnRefresh(HDC hDC, int phase)
     }
 
     // Only draw aircraft in the correct phase (before tags/lists)
-    if (phase != EuroScopePlugIn::REFRESH_PHASE_BEFORE_TAGS) { return; }
-
-    // Draw all aircraft with afterglow
-    EuroScopePlugIn::CFlightPlan flightPlan =
-        GetPlugIn()->FlightPlanSelectFirst();
-    while (flightPlan.IsValid())
+    if (phase != EuroScopePlugIn::REFRESH_PHASE_BEFORE_TAGS)
     {
-        EuroScopePlugIn::CRadarTarget radarTarget =
-            GetPlugIn()->RadarTargetSelect(flightPlan.GetCallsign());
+        Logger::getInstance().debug("OnRefresh: Skipping non-tag phase");
+        return;
+    }
 
+    Logger::getInstance().debug("OnRefresh: REFRESH_PHASE_BEFORE_TAGS - Drawing aircraft and tags");
+
+    // Draw all aircraft with afterglow - iterate through radar targets, not flight plans!
+    // This ensures we get both correlated AND uncorrelated targets
+    EuroScopePlugIn::CRadarTarget radarTarget =
+        GetPlugIn()->RadarTargetSelectFirst();
+    while (radarTarget.IsValid())
+    {
         if (radarTarget.IsValid())
         {
+            EuroScopePlugIn::CFlightPlan flightPlan =
+                GetPlugIn()->FlightPlanSelect(radarTarget.GetCallsign());
             std::string callsign = radarTarget.GetCallsign();
 
             // Get radar target position and heading
@@ -122,16 +138,82 @@ void RadarDisplay::OnRefresh(HDC hDC, int phase)
                 tagOffset.y = DEFAULT_TAG_OFFSET_Y;
             }
 
-            // Draw tag and register as draggable screen object
-            RECT tagRect = Tag::DrawTag(hDC, aircraftScreenPos, callsign,
-                                        tagOffset.x, tagOffset.y);
+            // Prepare tag data with aircraft information
+            TagData tagData;
+            tagData.items[TagItemType::Callsign] = callsign;
+            tagData.items[TagItemType::AcType] =
+                flightPlan.GetFlightPlanData().GetAircraftFPType();
 
-            // Register tag as a screen object for dragging
-            AddScreenObject(SCREEN_OBJECT_TYPE_TAG, callsign.c_str(), tagRect,
-                            true, "");
+            // Add ground speed
+            char gsStr[16];
+            sprintf_s(gsStr, sizeof(gsStr), "%.0f", groundSpeed);
+            tagData.items[TagItemType::GroundSpeed] = gsStr;
+
+            // Add flight level from radar target
+            int altitude = radarTarget.GetPosition().GetPressureAltitude();
+            char flStr[16];
+            sprintf_s(flStr, sizeof(flStr), "FL%03d", altitude / 100);
+            tagData.items[TagItemType::FlightLevel] = flStr;
+
+            // Add squawk code
+            const char * squawkCode = radarTarget.GetPosition().GetSquawk();
+            tagData.items[TagItemType::SSR] = squawkCode;
+
+            // Add SID/STAR if available
+            if (flightPlan.IsValid())
+            {
+                std::string sidInfo = flightPlan.GetFlightPlanData().GetSidName();
+                if (!sidInfo.empty())
+                {
+                    tagData.items[TagItemType::SID] = sidInfo;
+                }
+
+                std::string wakeStr = "";
+                wakeStr += flightPlan.GetFlightPlanData().GetAircraftWtc();
+                tagData.items[TagItemType::Wake] = wakeStr;
+            }
+
+            // Determine aircraft state for tag type
+            bool isCorrelated = flightPlan.IsValid();
+            
+            Logger::getInstance().debug("Aircraft " + callsign + ": correlated=" +
+                                       (isCorrelated ? "true" : "false") +
+                                       " gs=" + std::to_string(static_cast<int>(groundSpeed)));
+            
+            // Check if on departure or arrival based on flight plan state
+            // Simulated = just filed, Notified/Coordinated = being handled
+            bool isDeparture = false;
+            bool isArrival = false;
+            
+            if (isCorrelated)
+            {
+                // You'll need to determine this from your flight plan tracking
+                // For now, assume low-level aircraft with climb tendency = departure
+                // and descending aircraft = arrival
+                // This can be refined based on flight plan actual state
+                isDeparture = (groundSpeed < 80.0); // Simple heuristic
+                isArrival = false; // Could be determined from flight plan
+            }
+
+            // Draw tag based on aircraft state
+            RECT tagRect = Tag::DrawTagForAircraft(
+                hDC, aircraftScreenPos, tagData, *tagProfileManager,
+                isCorrelated, isDeparture, isArrival, groundSpeed,
+                tagOffset.x, tagOffset.y);
+
+            Logger::getInstance().debug("Aircraft " + callsign + ": tag drawn at (" +
+                                       std::to_string(tagRect.left) + "," +
+                                       std::to_string(tagRect.top) + ")");
+
+            // Register tag as a screen object for dragging (only if tag was drawn)
+            if (tagRect.right > 0 && tagRect.bottom > 0)
+            {
+                AddScreenObject(SCREEN_OBJECT_TYPE_TAG, callsign.c_str(),
+                                tagRect, true, "");
+            }
         }
 
-        flightPlan = GetPlugIn()->FlightPlanSelectNext(flightPlan);
+        radarTarget = GetPlugIn()->RadarTargetSelectNext(radarTarget);
     }
 }
 

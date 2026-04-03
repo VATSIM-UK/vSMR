@@ -2,6 +2,7 @@
 
 #include "AircraftRenderer.hpp"
 #include "Display/MenuBar.hpp"
+#include "Tags/TagProfileManager.hpp"
 #pragma warning(push, 0)
 #include <EuroScopePlugIn.h>
 #pragma warning(pop)
@@ -34,6 +35,7 @@ class RadarDisplay : public EuroScopePlugIn::CRadarScreen
     private:
     std::unique_ptr<AircraftRenderer> aircraftRenderer;
     std::unique_ptr<MenuBar> menuBar;
+    std::unique_ptr<TagProfileManager> tagProfileManager;
 
     // Tag offset storage: callsign -> offset from aircraft position
     std::map<std::string, POINT> tagOffsets;

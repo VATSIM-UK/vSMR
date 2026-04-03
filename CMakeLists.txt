@@ -15,7 +15,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 
 # Find dependencies
-find_package(RapidJSON REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # Configure version header
 configure_file(
@@ -89,7 +89,7 @@ endif()
 target_link_libraries(vSMR
     PRIVATE
         euroscope_interface
-        rapidjson
+        nlohmann_json::nlohmann_json
         vSMR_Logger
         vSMR_Display
         vSMR_Radar

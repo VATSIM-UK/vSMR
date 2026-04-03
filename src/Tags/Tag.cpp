@@ -1,5 +1,10 @@
 #include "Tag.hpp"
+#include "TagProfileManager.hpp"
+#include "Logger.hpp"
 #include <cmath>
+#include <gdiplus.h>
+#pragma comment(lib, "gdiplus.lib")
+using namespace Gdiplus;
 
 namespace
 {
@@ -11,9 +16,9 @@ constexpr COLORREF DEFAULT_TAG_BG_COLOR   = RGB(33, 115, 196);  // Blue
 constexpr COLORREF DEFAULT_TAG_TEXT_COLOR = RGB(255, 255, 255); // White
 constexpr COLORREF DEFAULT_BORDER_COLOR   = RGB(255, 255, 255); // White
 
-constexpr const char * FONT_NAME = "EuroScope";
-constexpr int FONT_HEIGHT        = 14;
-constexpr int FONT_WEIGHT        = FW_NORMAL;
+constexpr const char * FONT_NAME = "Arial";
+constexpr int FONT_HEIGHT        = 22;
+constexpr int FONT_WEIGHT        = FW_BOLD;
 
 /**
  * Structure to hold measured tag dimensions
@@ -118,19 +123,16 @@ void DrawLeaderLine(HDC hDC,
 }
 
 /**
- * Draw the tag background rectangle
+ * Draw the tag background rectangle using GDI+
  */
-void DrawTagBackground(HDC hDC, const RECT & rect, COLORREF backgroundColor)
+void DrawTagBackground(Gdiplus::Graphics & graphics, const RECT & rect, Gdiplus::Color backgroundColor)
 {
-    HBRUSH bgBrush  = CreateSolidBrush(backgroundColor);
-    HBRUSH oldBrush = (HBRUSH)SelectObject(hDC, bgBrush);
-    HPEN oldPen     = (HPEN)SelectObject(hDC, GetStockObject(NULL_PEN));
-
-    Rectangle(hDC, rect.left, rect.top, rect.right + 1, rect.bottom + 1);
-
-    SelectObject(hDC, oldPen);
-    SelectObject(hDC, oldBrush);
-    DeleteObject(bgBrush);
+    Gdiplus::SolidBrush bgBrush(backgroundColor);
+    graphics.FillRectangle(&bgBrush, 
+                           static_cast<Gdiplus::REAL>(rect.left),
+                           static_cast<Gdiplus::REAL>(rect.top),
+                           static_cast<Gdiplus::REAL>(rect.right - rect.left),
+                           static_cast<Gdiplus::REAL>(rect.bottom - rect.top));
 }
 
 /**
@@ -179,6 +181,8 @@ TagDimensions MeasureTagLines(HDC hDC,
             dims.maxLineWidth =
                 (dims.maxLineWidth > lineWidth) ? dims.maxLineWidth : lineWidth;
             dims.totalHeight += dims.lineHeight;
+            // Add line spacing between lines
+            if (dims.totalHeight > dims.lineHeight) { dims.totalHeight += 2; }
         }
     }
 
@@ -186,26 +190,29 @@ TagDimensions MeasureTagLines(HDC hDC,
 }
 
 /**
- * Draw multi-line tag text content
+ * Draw multi-line tag text content using GDI+
  */
-void DrawMultiLineTagText(HDC hDC,
+void DrawMultiLineTagText(Gdiplus::Graphics & graphics,
                           const RECT & tagRect,
                           const TagData & tagData,
                           const std::vector<TagLine> & tagLines,
                           int lineHeight,
                           int spaceWidth,
-                          COLORREF textColor)
+                          Gdiplus::Color textColor,
+                          Gdiplus::Font & font)
 {
-    SetTextColor(hDC, textColor);
-    SetBkMode(hDC, TRANSPARENT);
+    Gdiplus::SolidBrush textBrush(textColor);
+    Gdiplus::StringFormat format;
+    format.SetAlignment(Gdiplus::StringAlignmentNear);
+    format.SetLineAlignment(Gdiplus::StringAlignmentNear);
 
-    int currentY = tagRect.top + TAG_PADDING;
+    Gdiplus::REAL currentY = static_cast<Gdiplus::REAL>(tagRect.top + TAG_PADDING);
 
     for (size_t lineIdx = 0; lineIdx < tagLines.size(); ++lineIdx)
     {
         const auto & line = tagLines[lineIdx];
         bool hasContent   = false;
-        int currentX      = tagRect.left + TAG_PADDING;
+        Gdiplus::REAL currentX     = static_cast<Gdiplus::REAL>(tagRect.left + TAG_PADDING);
 
         // Check if line has content
         for (const auto & itemName : line)
@@ -231,14 +238,16 @@ void DrawMultiLineTagText(HDC hDC,
 
             if (!text.empty())
             {
-                TextOutA(hDC, currentX, currentY, text.c_str(),
-                         static_cast<int>(text.length()));
+                // Convert to wide string for GDI+
+                std::wstring wtext(text.begin(), text.end());
+                graphics.DrawString(wtext.c_str(), -1, &font,
+                                   Gdiplus::PointF(currentX, currentY), &textBrush);
 
-                SIZE textSize;
-                GetTextExtentPoint32A(hDC, text.c_str(),
-                                      static_cast<int>(text.length()),
-                                      &textSize);
-                currentX += textSize.cx;
+                // Measure text width
+                Gdiplus::RectF boundingBox;
+                graphics.MeasureString(wtext.c_str(), -1, &font,
+                                      Gdiplus::PointF(0, 0), &boundingBox);
+                currentX += boundingBox.Width;
 
                 // Check if there's more content after this element
                 bool hasNextContent = false;
@@ -253,7 +262,13 @@ void DrawMultiLineTagText(HDC hDC,
                         break;
                     }
                 }
-                if (hasNextContent) { currentX += spaceWidth; }
+                if (hasNextContent)
+                {
+                    Gdiplus::RectF spaceBox;
+                    graphics.MeasureString(L" ", 1, &font, Gdiplus::PointF(0, 0),
+                                          &spaceBox);
+                    currentX += spaceBox.Width;
+                }
             }
         }
 
@@ -298,6 +313,67 @@ TagItemType Tag::ParseTagItemType(const std::string & itemName)
     return TagItemType::Callsign;
 }
 
+RECT Tag::DrawTagForAircraft(HDC hDC,
+                             POINT aircraftScreenPos,
+                             const TagData & tagData,
+                             const TagProfileManager & profileManager,
+                             bool isCorrelated,
+                             bool isDeparture,
+                             bool isArrival,
+                             double groundSpeed,
+                             int tagOffsetX,
+                             int tagOffsetY)
+{
+    int tagType =
+        DetermineTagType(isCorrelated, isDeparture, isArrival, groundSpeed);
+    return DrawProfileTag(hDC, aircraftScreenPos, tagData, profileManager,
+                          tagType, tagOffsetX, tagOffsetY);
+}
+
+RECT Tag::DrawProfileTag(HDC hDC,
+                         POINT aircraftScreenPos,
+                         const TagData & tagData,
+                         const TagProfileManager & profileManager,
+                         int tagTypeValue,
+                         int tagOffsetX,
+                         int tagOffsetY)
+{
+    // Return empty rect if no tag should be displayed (-1)
+    if (tagTypeValue == -1)
+    {
+        return {0, 0, 0, 0};
+    }
+
+    TagType tagType = static_cast<TagType>(tagTypeValue);
+    const TagDefinition * tagDef = profileManager.GetTagDefinition(tagType);
+
+    if (!tagDef)
+    {
+        // Fallback to airborne tag if type not found
+        tagDef = profileManager.GetTagDefinition(TagType::Airborne);
+        if (!tagDef)
+        {
+            return {0, 0, 0, 0};
+        }
+    }
+
+    // Build tag lines from definition
+    std::vector<TagLine> tagLines = tagDef->lines;
+
+    const TagFormattingSettings & formatting =
+        profileManager.GetFormattingSettings();
+
+    return DrawMultiLineTag(hDC,
+                            aircraftScreenPos,
+                            tagData,
+                            tagLines,
+                            tagOffsetX,
+                            tagOffsetY,
+                            tagDef->backgroundColor.ToCOLORREF(),
+                            tagDef->textColor.ToCOLORREF(),
+                            formatting.borderColor.ToCOLORREF());
+}
+
 RECT Tag::DrawMultiLineTag(HDC hDC,
                            POINT aircraftScreenPos,
                            const TagData & tagData,
@@ -308,25 +384,36 @@ RECT Tag::DrawMultiLineTag(HDC hDC,
                            COLORREF textColor,
                            COLORREF borderColor)
 {
+    Logger::getInstance().debug("DrawMultiLineTag: Starting tag rendering");
+    
     POINT tagCenter;
     tagCenter.x = aircraftScreenPos.x + tagOffsetX;
     tagCenter.y = aircraftScreenPos.y + tagOffsetY;
 
+    // Create GDI+ Graphics object from HDC
+    Gdiplus::Graphics graphics(hDC);
+    graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+    graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+
+    // Create font for GDI+
+    Gdiplus::Font gdiPlusFont(L"Arial", 14, Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
+
+    // Measure all tag lines using GDI (for accurate dimensions)
     HFONT hFont   = CreateTagFont(hDC);
     HFONT oldFont = (HFONT)SelectObject(hDC, hFont);
 
-    // Measure space width
     SIZE spaceSize;
     GetTextExtentPoint32A(hDC, " ", 1, &spaceSize);
     int spaceWidth = spaceSize.cx;
 
-    // Measure all tag lines
     TagDimensions dims = MeasureTagLines(hDC, tagData, tagLines, spaceWidth);
+
+    SelectObject(hDC, oldFont);
+    DeleteObject(hFont);
 
     if (dims.totalHeight == 0)
     {
-        SelectObject(hDC, oldFont);
-        DeleteObject(hFont);
+        Logger::getInstance().debug("DrawMultiLineTag: No content to render");
         return {0, 0, 0, 0};
     }
 
@@ -341,15 +428,28 @@ RECT Tag::DrawMultiLineTag(HDC hDC,
 
     RECT boxRect = {left, top, right, bottom};
 
-    // Draw leader line
+    Logger::getInstance().debug("DrawMultiLineTag: Drawing background at (" + 
+                                std::to_string(left) + "," + std::to_string(top) + ")");
+
+    // Draw leader line (GDI)
     DrawLeaderLine(hDC, aircraftScreenPos, tagCenter, boxRect);
 
-    // Draw background
-    DrawTagBackground(hDC, boxRect, backgroundColor);
+    // Draw background (GDI+)
+    Gdiplus::Color bgColor(GetRValue(backgroundColor), GetGValue(backgroundColor),
+                  GetBValue(backgroundColor));
+    DrawTagBackground(graphics, boxRect, bgColor);
 
-    // Draw text content
-    DrawMultiLineTagText(hDC, boxRect, tagData, tagLines, dims.lineHeight,
-                         spaceWidth, textColor);
+    Logger::getInstance().debug("DrawMultiLineTag: Drawing text content");
+
+    // Draw text content (GDI+)
+    Gdiplus::Color txtColor(GetRValue(textColor), GetGValue(textColor),
+                   GetBValue(textColor));
+    DrawMultiLineTagText(graphics, boxRect, tagData, tagLines,
+                        dims.lineHeight, spaceWidth, txtColor, gdiPlusFont);
+
+    Logger::getInstance().debug("DrawMultiLineTag: Tag rendering complete");
+
+    return boxRect;
 
     SelectObject(hDC, oldFont);
     DeleteObject(hFont);
@@ -357,25 +457,34 @@ RECT Tag::DrawMultiLineTag(HDC hDC,
     return boxRect;
 }
 
+// OLD FUNCTION - Kept for compatibility but not actively used
+// Use DrawTagForAircraft instead which handles state-based rendering
 RECT Tag::DrawTag(HDC hDC,
                   POINT aircraftScreenPos,
                   const std::string & callsign,
                   int tagOffsetX,
                   int tagOffsetY)
 {
+    // Create GDI+ Graphics object  
+    Gdiplus::Graphics graphics(hDC);
+    graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+    graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+
+    Gdiplus::Font font(L"Arial", 14, Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
+    Gdiplus::SolidBrush textBrush(Gdiplus::Color(255, 255, 255, 255));
+
+    // Measure text
+    Gdiplus::RectF boundingBox;
+    std::wstring wcallsign(callsign.begin(), callsign.end());
+    graphics.MeasureString(wcallsign.c_str(), -1, &font,
+                          Gdiplus::PointF(0, 0), &boundingBox);
+
     POINT tagCenter;
     tagCenter.x = aircraftScreenPos.x + tagOffsetX;
     tagCenter.y = aircraftScreenPos.y + tagOffsetY;
 
-    HFONT hFont   = CreateTagFont(hDC);
-    HFONT oldFont = (HFONT)SelectObject(hDC, hFont);
-
-    SIZE textSize;
-    GetTextExtentPoint32A(hDC, callsign.c_str(),
-                          static_cast<int>(callsign.length()), &textSize);
-
-    int boxWidth  = textSize.cx + (TAG_PADDING * 2);
-    int boxHeight = textSize.cy + (TAG_PADDING * 2);
+    int boxWidth  = static_cast<int>(boundingBox.Width) + (TAG_PADDING * 2);
+    int boxHeight = static_cast<int>(boundingBox.Height) + (TAG_PADDING * 2);
 
     int left   = tagCenter.x - (boxWidth / 2);
     int top    = tagCenter.y - (boxHeight / 2);
@@ -386,18 +495,13 @@ RECT Tag::DrawTag(HDC hDC,
 
     DrawLeaderLine(hDC, aircraftScreenPos, tagCenter, boxRect);
 
-    DrawTagBackground(hDC, boxRect, DEFAULT_TAG_BG_COLOR);
+    Gdiplus::Color bgColor(40, 50, 200);
+    DrawTagBackground(graphics, boxRect, bgColor);
 
-    SetTextColor(hDC, DEFAULT_TAG_TEXT_COLOR);
-    SetBkMode(hDC, TRANSPARENT);
-
-    int textX = left + TAG_PADDING;
-    int textY = top + TAG_PADDING;
-    TextOutA(hDC, textX, textY, callsign.c_str(),
-             static_cast<int>(callsign.length()));
-
-    SelectObject(hDC, oldFont);
-    DeleteObject(hFont);
+    graphics.DrawString(wcallsign.c_str(), -1, &font,
+                       Gdiplus::PointF(static_cast<Gdiplus::REAL>(left + TAG_PADDING),
+                                      static_cast<Gdiplus::REAL>(top + TAG_PADDING)),
+                       &textBrush);
 
     return boxRect;
 }
@@ -424,4 +528,43 @@ bool Tag::GetTextRect(HDC hDC, const std::string & text, RECT & outRect)
     SelectObject(hDC, oldFont);
     DeleteObject(hFont);
     return true;
+}
+
+int Tag::DetermineTagType(bool isCorrelated,
+                          bool isDeparture,
+                          bool isArrival,
+                          double groundSpeed)
+{
+    // Uncorrelated aircraft
+    if (!isCorrelated)
+    {
+        // Stationary uncorrelated: no tag
+        if (groundSpeed < 5.0)
+        {
+            return -1; // No tag
+        }
+        // Moving uncorrelated: show uncorrelated tag
+        return static_cast<int>(TagType::Uncorrelated);
+    }
+
+    // Correlated aircraft - check ground speed threshold
+    if (groundSpeed >= 80.0)
+    {
+        // High speed: always airborne tag
+        return static_cast<int>(TagType::Airborne);
+    }
+
+    // Low speed: use departure/arrival status
+    if (isDeparture)
+    {
+        return static_cast<int>(TagType::Departure);
+    }
+
+    if (isArrival)
+    {
+        return static_cast<int>(TagType::Arrival);
+    }
+
+    // Default to airborne if no departure/arrival info
+    return static_cast<int>(TagType::Airborne);
 }

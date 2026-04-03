@@ -21,11 +21,11 @@
     "airborne": {
       "lines": [
         ["callsign"],
-        ["flightlevel"]
+        ["flightlevel", "gs"]
       ],
       "text_color": "255,255,255,255",
-      "background_color": "0,0,0,0",
-      "background_color_on_runway": "0,0,0,0"
+      "background_color": "80,80,80,255",
+      "background_color_on_runway": "80,80,80,255"
     },
     "uncorrelated": {
       "lines": [
@@ -33,7 +33,7 @@
       ],
       "text_color": "255,255,255,255",
       "background_color": "150,22,135,255",
-      "background_color_on_runway": "0,0,0,0"
+      "background_color_on_runway": "150,22,135,255"
     }
   },
   "tag_formatting": {
