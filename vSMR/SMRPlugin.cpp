@@ -399,6 +399,14 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 		}
 		return true;
 	}
+	else if (strcmp(sCommandLine, ".smr resetvisuals") == 0) {
+		for (auto radarScreen : RadarScreensOpened) {
+			if (radarScreen != nullptr) {
+				radarScreen->ResetMonitorVisuals();
+			}
+		}
+		return true;
+	}
 	else if (strcmp(sCommandLine, ".smr log") == 0) {
 		Logger::ENABLED = !Logger::ENABLED;
 		return true;
