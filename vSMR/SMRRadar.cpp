@@ -1658,6 +1658,11 @@ string CSMRRadar::GetBottomLine(const char *Callsign) {
 
 bool CSMRRadar::OnCompileCommand(const char *sCommandLine) {
 
+  if (strcmp(sCommandLine, ".smr resetvisuals") == 0) {
+    ResetMonitorVisuals();
+    return true;
+  }
+
   if (strcmp(sCommandLine, ".smr reload") == 0) {
     CurrentConfig = new CConfig(ConfigPath);
     LoadProfile(CurrentConfig->getActiveProfileName());
@@ -1665,6 +1670,17 @@ bool CSMRRadar::OnCompileCommand(const char *sCommandLine) {
   }
 
   return false;
+}
+
+void CSMRRadar::ResetMonitorVisuals() {
+  DepartureWindowArea.left = 500;
+  DepartureWindowArea.top = 300;
+  DepartureWindowArea.right = 700;
+  DepartureWindowArea.bottom = 400;
+  TimePopupAreas.clear();
+  monitorVisualPreviewUntil = clock() + (5 * CLOCKS_PER_SEC);
+  OnAsrContentToBeSaved();
+  RequestRefresh();
 }
 
 map<string, string> CSMRRadar::GenerateTagData(
@@ -2014,6 +2030,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
     return;
 
 
+
+  bool showVisualResetPreview = clock() < monitorVisualPreviewUntil;
 
   struct Utils {
     static RECT GetAreaFromText(CDC *dc, string text, POINT Pos) {
@@ -3029,7 +3047,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
   for (std::map<string, bool>::iterator it =
            RimcasInstance->MonitoredRunwayArr.begin();
        it != RimcasInstance->MonitoredRunwayArr.end(); ++it) {
-    if (!it->second || RimcasInstance->TimeTable[it->first].empty())
+    bool hasArrivalData = !RimcasInstance->TimeTable[it->first].empty();
+    if (!it->second || (!hasArrivalData && !showVisualResetPreview))
       continue;
 
     vector<int> TimeDefinition = RimcasInstance->CountdownDefinition;
@@ -3145,7 +3164,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
   // Departure Timer Window
   // ==========================================
 
-  if (showDepartureWindow && RimcasInstance->DepartedAircraft.size() > 0) {
+  if ((showDepartureWindow || showVisualResetPreview) &&
+      (!RimcasInstance->DepartedAircraft.empty() || showVisualResetPreview)) {
     // Calculate box dimensions based on content
     int maxWidth = 0;
     int numColumns = 0;
@@ -3894,6 +3914,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
     int appWindowId = it->first;
     appWindows[appWindowId]->render(hDC, this, &graphics, mouseLocation,
                                     DistanceTools);
+  }
+
+  if (showVisualResetPreview) {
+    RequestRefresh();
   }
 
   dc.Detach();

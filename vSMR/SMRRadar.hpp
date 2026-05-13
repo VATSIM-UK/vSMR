@@ -116,6 +116,7 @@ public:
   bool depWindowShowFreq = true;
   bool depWindowShowTime = true;
   RECT DepartureWindowArea = {500, 300, 700, 400};
+  clock_t monitorVisualPreviewUntil = 0;
 
   map<string, RECT> TimePopupAreas;
 
@@ -272,6 +273,7 @@ public:
   //---OnCompileCommand-----------------------------------------
 
   virtual bool OnCompileCommand(const char *sCommandLine);
+  virtual void ResetMonitorVisuals();
 
   //---RefreshAirportActivity---------------------------------------------
 
