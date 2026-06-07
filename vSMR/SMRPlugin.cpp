@@ -344,7 +344,14 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			if (dia.DoModal() != IDOK)
 				return;
 
-			datalinkManager->sendSimpleCpdlcMessage(FlightPlan.GetCallsign(), dia.m_Message, "NE");
+						// Convert CString to std::string
+						#ifdef UNICODE
+							std::wstring ws = dia.m_Message.GetString();
+							std::string msg(ws.begin(), ws.end());
+						#else
+							std::string msg = (LPCTSTR)dia.m_Message;
+						#endif
+						datalinkManager->sendSimpleCpdlcMessage(FlightPlan.GetCallsign(), msg, "NE");
 		}
 
 		break;
@@ -412,12 +419,24 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			clearance.destination = FlightPlan.GetFlightPlanData().GetDestination();
 			clearance.rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
 			clearance.sid = FlightPlan.GetFlightPlanData().GetSidName();
-			clearance.asat = dia.m_TSAT;
-			clearance.ctot = dia.m_CTOT;
-			clearance.freq = dia.m_Freq;
-			clearance.message = dia.m_Message;
-			clearance.squawk = FlightPlan.GetControllerAssignedData().GetSquawk();
-			clearance.climb = toReturn;
+						// Convert CString fields to std::string
+						#ifdef UNICODE
+							std::wstring ws_asat = dia.m_TSAT.GetString();
+							std::wstring ws_ctot = dia.m_CTOT.GetString();
+							std::wstring ws_freq = dia.m_Freq.GetString();
+							std::wstring ws_message = dia.m_Message.GetString();
+							clearance.asat = std::string(ws_asat.begin(), ws_asat.end());
+							clearance.ctot = std::string(ws_ctot.begin(), ws_ctot.end());
+							clearance.freq = std::string(ws_freq.begin(), ws_freq.end());
+							clearance.message = std::string(ws_message.begin(), ws_message.end());
+						#else
+							clearance.asat = (LPCTSTR)dia.m_TSAT;
+							clearance.ctot = (LPCTSTR)dia.m_CTOT;
+							clearance.freq = (LPCTSTR)dia.m_Freq;
+							clearance.message = (LPCTSTR)dia.m_Message;
+						#endif
+						clearance.squawk = FlightPlan.GetControllerAssignedData().GetSquawk();
+						clearance.climb = toReturn;
 
 			myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
 
