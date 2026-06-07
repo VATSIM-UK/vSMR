@@ -46,6 +46,16 @@ static void formatNowTimeDate(string & timeStr, string &dateStr)
 }
 
 
+static std::string CStringToStdString(const CString& s)
+{
+#ifdef UNICODE
+    std::wstring ws = s.GetString();
+    return std::string(ws.begin(), ws.end());
+#else
+    return std::string((LPCTSTR)s);
+#endif
+}
+
 CSMRPlugin::CSMRPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
 
@@ -345,13 +355,8 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 				return;
 
 						// Convert CString to std::string
-						#ifdef UNICODE
-							std::wstring ws = dia.m_Message.GetString();
-							std::string msg(ws.begin(), ws.end());
-						#else
-							std::string msg = (LPCTSTR)dia.m_Message;
-						#endif
-						datalinkManager->sendSimpleCpdlcMessage(FlightPlan.GetCallsign(), msg, "NE");
+						std::string msgStr = CStringToStdString(dia.m_Message);
+						datalinkManager->sendSimpleCpdlcMessage(FlightPlan.GetCallsign(), msgStr, "NE");
 		}
 
 		break;
@@ -419,22 +424,10 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			clearance.destination = FlightPlan.GetFlightPlanData().GetDestination();
 			clearance.rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
 			clearance.sid = FlightPlan.GetFlightPlanData().GetSidName();
-						// Convert CString fields to std::string
-						#ifdef UNICODE
-							std::wstring ws_asat = dia.m_TSAT.GetString();
-							std::wstring ws_ctot = dia.m_CTOT.GetString();
-							std::wstring ws_freq = dia.m_Freq.GetString();
-							std::wstring ws_message = dia.m_Message.GetString();
-							clearance.asat = std::string(ws_asat.begin(), ws_asat.end());
-							clearance.ctot = std::string(ws_ctot.begin(), ws_ctot.end());
-							clearance.freq = std::string(ws_freq.begin(), ws_freq.end());
-							clearance.message = std::string(ws_message.begin(), ws_message.end());
-						#else
-							clearance.asat = (LPCTSTR)dia.m_TSAT;
-							clearance.ctot = (LPCTSTR)dia.m_CTOT;
-							clearance.freq = (LPCTSTR)dia.m_Freq;
-							clearance.message = (LPCTSTR)dia.m_Message;
-						#endif
+						clearance.asat = CStringToStdString(dia.m_TSAT);
+						clearance.ctot = CStringToStdString(dia.m_CTOT);
+						clearance.freq = CStringToStdString(dia.m_Freq);
+						clearance.message = CStringToStdString(dia.m_Message);
 						clearance.squawk = FlightPlan.GetControllerAssignedData().GetSquawk();
 						clearance.climb = toReturn;
 
