@@ -3,6 +3,7 @@
 #include "HttpHelper.hpp"
 #include "CPDLCSettingsDialog.hpp"
 #include "DataLinkDialog.hpp"
+#include "DatalinkManager.hpp"
 #include <string>
 #include <algorithm>
 #include "Constant.hpp"
@@ -27,6 +28,7 @@ class CSMRPlugin :
 {
 private:
 	CQnhTracker qnhTracker;
+	DatalinkManager* datalinkManager;
 
 public:
 	CSMRPlugin();
