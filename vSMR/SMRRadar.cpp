@@ -2589,6 +2589,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
     bool isAcDisplayed = isVisible(rt);
 
     bool AcisCorrelated = IsCorrelated(fp, rt);
+        
+    bool isInboundArrival =
+       fp.IsValid() &&
+       strcmp(fp.GetFlightPlanData().GetDestination(),
+         getActiveAirport().c_str()) == 0 &&
+       strcmp(fp.GetFlightPlanData().GetOrigin(),
+         getActiveAirport().c_str()) != 0;
 
     if (!AcisCorrelated && reportedGs < 3)
       isAcDisplayed = false;
@@ -2659,13 +2666,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       }
     }
 
-    if (!AcisCorrelated && reportedGs >= 3) {
+    if (!AcisCorrelated && !isInboundArrival && reportedGs >= 3) {
       TagType = TagTypes::Uncorrelated;
       ColorTagType = TagTypes::Uncorrelated;
     }
 
     map<string, string> TagReplacingMap = GenerateTagData(
-        rt, fp, IsCorrelated(fp, rt),
+        rt, fp, AcisCorrelated || isInboundArrival,
         CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"]
             .GetBool(),
         GetPlugIn()->GetTransitionAltitude(),

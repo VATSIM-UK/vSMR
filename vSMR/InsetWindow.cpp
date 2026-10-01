@@ -422,9 +422,17 @@ void CInsetWindow::render(HDC hDC, CSMRRadar *radar_screen, Graphics *gdi,
              float(lenght * sin(DegToRad(m_TagAngles[rt.GetCallsign()]))));
     // Drawing the tags, what a mess
 
+    bool AcisCorrelated = radar_screen->IsCorrelated(fp, rt);
+    bool isInboundArrival =
+      fp.IsValid() &&
+      strcmp(fp.GetFlightPlanData().GetDestination(),
+           radar_screen->getActiveAirport().c_str()) == 0 &&
+      strcmp(fp.GetFlightPlanData().GetOrigin(),
+           radar_screen->getActiveAirport().c_str()) != 0;
+
     // ----- Generating the replacing map -----
     map<string, string> TagReplacingMap = CSMRRadar::GenerateTagData(
-        rt, fp, radar_screen->IsCorrelated(fp, rt),
+        rt, fp, AcisCorrelated || isInboundArrival,
         radar_screen->CurrentConfig
             ->getActiveProfile()["filters"]["pro_mode"]["enable"]
             .GetBool(),
@@ -488,9 +496,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar *radar_screen, Graphics *gdi,
       }
     }
 
-    bool AcisCorrelated = radar_screen->IsCorrelated(
-        radar_screen->GetPlugIn()->FlightPlanSelect(rt.GetCallsign()), rt);
-    if (!AcisCorrelated && reportedGs >= 3) {
+    if (!AcisCorrelated && !isInboundArrival && reportedGs >= 3) {
       TagType = CSMRRadar::TagTypes::Uncorrelated;
       ColorTagType = CSMRRadar::TagTypes::Uncorrelated;
     }
