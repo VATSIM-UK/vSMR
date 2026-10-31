@@ -271,6 +271,8 @@ void CSMRRadar::LoadProfile(string profileName) {
 
 void CSMRRadar::OnAsrContentLoaded(bool Loaded) {
 
+  TimePopupAreas.clear();
+
   const char *p_value;
 
   // ReSharper disable CppZeroConstantCanBeReplacedWithNullptr
@@ -376,13 +378,23 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded) {
       appWindowDisplays[i] = atoi(p_value) == 1 ? true : false;
   }
 
-  // Auto load the airport config on ASR opened.
+  // Load arrival timer positions and the airport config on ASR opened.
   CSectorElement rwy;
   for (rwy = GetPlugIn()->SectorFileElementSelectFirst(SECTOR_ELEMENT_RUNWAY);
        rwy.IsValid(); rwy = GetPlugIn()->SectorFileElementSelectNext(
                           rwy, SECTOR_ELEMENT_RUNWAY)) {
     if (startsWith(getActiveAirport().c_str(), rwy.GetAirportName())) {
       string name = rwy.GetRunwayName(0) + string(" / ") + rwy.GetRunwayName(1);
+      string windowId = getActiveAirport() + "_" + name;
+      RECT &area = TimePopupAreas[windowId];
+      area.left = 300;
+      area.top = 300;
+
+      if ((p_value = GetDataFromAsr(("ArrWindowPosX_" + windowId).c_str())) != NULL)
+        area.left = atoi(p_value);
+
+      if ((p_value = GetDataFromAsr(("ArrWindowPosY_" + windowId).c_str())) != NULL)
+        area.top = atoi(p_value);
 
       if (rwy.IsElementActive(true, 0) || rwy.IsElementActive(true, 1) ||
           rwy.IsElementActive(false, 0) || rwy.IsElementActive(false, 1)) {
@@ -431,6 +443,14 @@ void CSMRRadar::OnAsrContentToBeSaved() {
 
   SaveDataToAsr("ShowWakeTurb", "Show Wake Turbulence",
                 std::to_string(showWakeTurb).c_str());
+
+  // Arrival timer positions are stored separately for each airport and runway.
+  for (const auto &area : TimePopupAreas) {
+    SaveDataToAsr(("ArrWindowPosX_" + area.first).c_str(),
+                  "Arrival Timer Window X", std::to_string(area.second.left).c_str());
+    SaveDataToAsr(("ArrWindowPosY_" + area.first).c_str(),
+                  "Arrival Timer Window Y", std::to_string(area.second.top).c_str());
+  }
 
   // Departure Timer Window settings
   SaveDataToAsr("DepWindowShow", "Show Departure Timer Window",
@@ -626,6 +646,7 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char *sObjectId,
 
   if (ObjectType == RIMCAS_IAW) {
     TimePopupAreas[sObjectId] = Area;
+    OnAsrContentToBeSaved();
 
     if (!Released) {
       if (standardCursor) {
@@ -1677,7 +1698,12 @@ void CSMRRadar::ResetMonitorVisuals() {
   DepartureWindowArea.top = 300;
   DepartureWindowArea.right = 700;
   DepartureWindowArea.bottom = 400;
-  TimePopupAreas.clear();
+  // Reset all arrival runways, including windows that are currently hidden.
+  for (const auto &runway : RimcasInstance->MonitoredRunwayArr) {
+    RECT &area = TimePopupAreas[getActiveAirport() + "_" + runway.first];
+    area.left = 300;
+    area.top = 300;
+  }
   monitorVisualPreviewUntil = clock() + (5 * CLOCKS_PER_SEC);
   OnAsrContentToBeSaved();
   RequestRefresh();
@@ -3083,15 +3109,16 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
     int boxHeight = LineSpacing * (TimeDefinition.size() + 1) +
                     5; // +1 for runway name, +5px total padding
 
-    if (TimePopupAreas.find(it->first) == TimePopupAreas.end())
-      TimePopupAreas[it->first] = {300, 300, 300 + boxWidth, 300 + boxHeight};
+    string windowId = getActiveAirport() + "_" + it->first;
+    if (TimePopupAreas.find(windowId) == TimePopupAreas.end())
+      TimePopupAreas[windowId] = {300, 300, 300 + boxWidth, 300 + boxHeight};
     else
-      TimePopupAreas[it->first] = {TimePopupAreas[it->first].left,
-                                   TimePopupAreas[it->first].top,
-                                   TimePopupAreas[it->first].left + boxWidth,
-                                   TimePopupAreas[it->first].top + boxHeight};
+      TimePopupAreas[windowId] = {TimePopupAreas[windowId].left,
+                                 TimePopupAreas[windowId].top,
+                                 TimePopupAreas[windowId].left + boxWidth,
+                                 TimePopupAreas[windowId].top + boxHeight};
 
-    CRect CRectTime = TimePopupAreas[it->first];
+    CRect CRectTime = TimePopupAreas[windowId];
     CRectTime.NormalizeRect();
 
     dc.FillRect(CRectTime, &BrushGrey);
@@ -3157,7 +3184,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase) {
       TopOffset += LineSpacing;
     }
 
-    AddScreenObject(RIMCAS_IAW, it->first.c_str(), CRectTime, true, "");
+    AddScreenObject(RIMCAS_IAW, windowId.c_str(), CRectTime, true, "");
   }
 
   // ==========================================
